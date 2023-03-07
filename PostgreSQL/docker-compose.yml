@@ -1,0 +1,18 @@
+version: '3.9'
+
+services:
+  postgresql:
+    image: postgres:15.2-alpine
+    container_name: postgresql
+    restart: unless-stopped
+    networks:
+      - postgresql # runs on port 5432 with example conf
+    env_file: .env
+    volumes:
+      - ./postgresql-data:/var/lib/postgresql/data
+#      - /etc/timezone:/etc/timezone:ro
+#      - /etc/localtime:/etc/localtime:ro
+
+networks:
+  postgresql:
+    name: postgresql

@@ -1,0 +1,31 @@
+version: '3.9'
+
+services:
+  keycloak:
+    image: bitnami/keycloak:20.0.5
+    container_name: keycloak
+    restart: unless-stopped
+    networks:
+      - keycloak # runs on port 8080 with example conf
+    depends_on:
+      - keycloak-db
+    env_file: .env
+#    volumes:
+#      - /etc/timezone:/etc/timezone:ro
+#      - /etc/localtime:/etc/localtime:ro
+
+  keycloak-db:
+    image: postgres:15.2-alpine
+    container_name: keycloak-db
+    restart: unless-stopped
+    networks:
+      - keycloak
+    env_file: .env
+    volumes:
+      - ./keycloak-db-data:/var/lib/postgresql/data
+#      - /etc/timezone:/etc/timezone:ro
+#      - /etc/localtime:/etc/localtime:ro
+
+networks:
+  keycloak:
+    name: keycloak

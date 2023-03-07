@@ -1,0 +1,14 @@
+http://domain.without.tls {
+
+}
+
+domain.with.tls {
+
+}
+
+# with cf plugin
+domain.with.cf.tls {
+  tls {env.CLOUDFLARE_EMAIL} {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+}

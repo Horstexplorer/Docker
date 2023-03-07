@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+  caddy:
+    image: caddy:2.6.2-alpine # or self build with cf plugin
+    container_name: caddy
+    restart: unless-stopped
+    init: true
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - caddy
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+
+
+volumes:
+  caddy_data:
+    name: caddy_data
+
+networks:
+  caddy:
+    name: caddy

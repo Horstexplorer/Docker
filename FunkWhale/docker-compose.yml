@@ -1,0 +1,16 @@
+version: '3.9'
+
+services:
+  funkwhale:
+    container_name: funkwhale
+    image: funkwhale/all-in-one:1.2.9
+    restart: unless-stopped
+    networks:
+      - funkwhale # runs on port 5000 with example conf
+    env_file: .env
+    volumes:
+      - ./funkwhale-data/:/data
+
+networks:
+  funkwhale:
+    name: funkwhale

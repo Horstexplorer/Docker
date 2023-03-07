@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+  ocis:
+    image: owncloud/ocis:latest
+    container_name: ocis
+    restart: unless-stopped
+    networks:
+      - ocis # runs on port 9200 with example conf
+    env_file: .env
+    volumes:
+      - "./ocis.yaml:/etc/ocis/ocis.yaml"
+      - "./ocis-data:/var/lib/ocis"
+
+networks:
+  ocis:
+    name: ocis

@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  acme:
+    image: neilpang/acme.sh
+    container_name: acme
+    restart: unless-stopped
+    networks:
+      - acme
+    volumes:
+      - ./data:/acme.sh
+      - ./account.conf:/acme.sh/account.conf
+    command: daemon
+
+networks:
+  acme:
+    name: acme
+
+# issue new cert
+# docker exec acme acme.sh --issue --dns dns_cf --server letsencrypt -d 'domain.tld' -d '*.domain.tld'
+# deploy cert to synology
+# docker exec acme acme.sh --deploy -d domain.tld --deploy-hook synology_dsm --insecure
