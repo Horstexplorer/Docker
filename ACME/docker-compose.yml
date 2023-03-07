@@ -10,6 +10,8 @@ services:
     volumes:
       - ./data:/acme.sh
       - ./account.conf:/acme.sh/account.conf
+#      - /etc/timezone:/etc/timezone:ro
+#      - /etc/localtime:/etc/localtime:ro
     command: daemon
 
 networks:

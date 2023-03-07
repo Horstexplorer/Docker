@@ -10,6 +10,8 @@ services:
     env_file: .env
     volumes:
       - ./funkwhale-data/:/data
+#      - /etc/timezone:/etc/timezone:ro
+#      - /etc/localtime:/etc/localtime:ro
 
 networks:
   funkwhale:

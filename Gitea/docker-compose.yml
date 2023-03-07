@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    restart: unless-stopped
+    networks:
+      - caddy
+      - gitea
+    volumes:
+      - ./gitea-data/:/data/
+#      - /etc/timezone:/etc/timezone:ro
+#      - /etc/localtime:/etc/localtime:ro
+    env_file: .env
+    depends_on:
+      - gitea-db
+
+  gitea-db:
+    image: postgres:15.2-alpine
+    container_name: gitea-db
+    restart: unless-stopped
+    networks:
+      - gitea
+    volumes:
+      - ./gitea-db-data/:/var/lib/postgresql/data
+#      - /etc/timezone:/etc/timezone:ro
+#      - /etc/localtime:/etc/localtime:ro
+    env_file: .env
+
+networks:
+  gitea:
+    name: gitea

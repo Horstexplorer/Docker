@@ -11,6 +11,8 @@ services:
     volumes:
       - "./ocis.yaml:/etc/ocis/ocis.yaml"
       - "./ocis-data:/var/lib/ocis"
+#      - /etc/timezone:/etc/timezone:ro
+#      - /etc/localtime:/etc/localtime:ro
 
 networks:
   ocis:

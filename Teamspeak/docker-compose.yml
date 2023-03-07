@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  teamspeak3:
+    container_name: teamspeak3
+    image: teamspeak:3.13.7
+    restart: unless-stopped
+    ports:
+      - 9987:9987/udp
+      - 10011:10011
+      - 30033:30033
+    networks:
+      - teamspeak
+    env_file: .env
+    volumes:
+      - ./teamspeak-:/var/ts3server
+#      - /etc/timezone:/etc/timezone:ro
+#      - /etc/localtime:/etc/localtime:ro
+
+networks:
+  teamspeak:
+    name: teamspeak
