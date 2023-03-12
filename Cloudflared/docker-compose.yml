@@ -1,0 +1,16 @@
+version: '3.9'
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    networks:
+      - cloudflared
+    volumes:
+      - ./cloudflared-data:/etc/cloudflared
+    env_file: .env
+
+networks:
+  cloudflared:
+    name: cloudflared
