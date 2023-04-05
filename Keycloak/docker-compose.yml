@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   keycloak:
-    image: bitnami/keycloak:20.0.5
+    image: bitnami/keycloak:21.0.2
     container_name: keycloak
     restart: unless-stopped
     networks:
@@ -15,17 +15,20 @@ services:
 #      - /etc/localtime:/etc/localtime:ro
 
   keycloak-db:
-    image: postgres:15.2-alpine
+    image: bitnami/postgresql:15.2.0
     container_name: keycloak-db
     restart: unless-stopped
     networks:
       - keycloak
     env_file: .env
     volumes:
-      - ./keycloak-db-data:/var/lib/postgresql/data
+      - keycloak-db:/bitnami/postgresql
 #      - /etc/timezone:/etc/timezone:ro
 #      - /etc/localtime:/etc/localtime:ro
 
+volumes:
+  keycloak-db:
+    name: keycloak-db
 networks:
   keycloak:
     name: keycloak
