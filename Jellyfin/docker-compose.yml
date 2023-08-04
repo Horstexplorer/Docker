@@ -1,0 +1,23 @@
+services:
+  jellyfin:
+    image: linuxserver/jellyfin
+    container_name: jellyfin
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
+      - DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel
+    networks:
+      - jellyfin
+    volumes:
+      - jellyfin:/config
+      - /video:/data
+    devices:
+      - /dev/dri:/dev/dri
+
+volumes:
+  jellyfin:
+    name: jellyfin
+
+networks:
+  jellyfin:
+    name: jellyfin

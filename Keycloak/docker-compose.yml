@@ -1,12 +1,12 @@
-version: '3.9'
+#version: '3.9'
 
 services:
   keycloak:
-    image: bitnami/keycloak:21.0.2
+    image: bitnami/keycloak:22.0.1
     container_name: keycloak
     restart: unless-stopped
     networks:
-      - keycloak # runs on port 8080 with example conf
+      - keycloak
     depends_on:
       - keycloak-db
     env_file: .env
@@ -15,7 +15,7 @@ services:
 #      - /etc/localtime:/etc/localtime:ro
 
   keycloak-db:
-    image: bitnami/postgresql:15.2.0
+    image: bitnami/postgresql:15.3.0
     container_name: keycloak-db
     restart: unless-stopped
     networks:

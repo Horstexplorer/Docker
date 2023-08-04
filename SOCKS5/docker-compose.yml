@@ -1,0 +1,12 @@
+version: '3.9'
+
+services:
+  go-socks5-proxy-ipa-ipb-ipc-ipd:
+    container_name: socks5
+    image: serjs/go-socks5-proxy
+    restart: unless-stopped
+    environment:
+      - PROXY_USER=
+      - PROXY_PASSWORD=
+    ports:
+      - "ipa-ipb-ipc-ipd:1080:1080"

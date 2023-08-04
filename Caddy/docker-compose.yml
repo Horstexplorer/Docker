@@ -2,25 +2,29 @@ version: '3.9'
 
 services:
   caddy:
-    image: caddy:2.6.2-alpine # or self build with cf plugin
+    build:
+      context: ./
+      dockerfile: Dockerfile
     container_name: caddy
     restart: unless-stopped
     init: true
+    env_file: .env
     ports:
-      - 80:80
-      - 443:443
+      - 80:80/tcp
+      - 80:80/udp
+      - 443:443/tcp
+      - 443:443/udp
     networks:
       - caddy
-    env_file: .env
     volumes:
+      - caddy:/data
       - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
 #      - /etc/timezone:/etc/timezone:ro
 #      - /etc/localtime:/etc/localtime:ro
 
 volumes:
-  caddy_data:
-    name: caddy_data
+  caddy:
+    name: caddy
 
 networks:
   caddy:

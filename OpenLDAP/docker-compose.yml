@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+  openldap:
+    image: bitnami/openldap:2.6.6
+    container_name: openldap
+    restart: unless-stopped
+    hostname: ldap.domain.tld
+    ports:
+      - 389:389
+      - 636:636
+    env_file: .env
+    volumes:
+      - openldap:/bitnami/openldap
+      - ./certificates:/opt/bitnami/openldap/certs
+  openldap-acme:
+    image: neilpang/acme.sh
+    container_name: openldap-acme
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - openldap-acme:/acme.sh
+      - ./certificates:/certificates
+      - ./account.conf:/acme.sh/account.conf
+      -  /var/run/docker.sock:/var/run/docker.sock
+    command: daemon
+
+# docker exec openldap-acme acme.sh --issue --dns dns_cf --server letsencrypt -d 'ldap.domain.tld'
+# docker exec openldap-acme acme.sh --install-cert -d ldap.domain.tld --cert-file /certificates/cert.pem --key-file /certificates/key.pem --ca-file /certificates/ca.pem --reloadcmd "docker restart openldap"
+# files in /certificates need to be owned by 1001
+
+volumes:
+  openldap:
+    name: openldap
+  openldap-acme:
+    name: openldap-acme
+networks:
+  openldap:
+    name: openldap

@@ -1,0 +1,93 @@
+version: '3.9'
+services:
+  sonarr:
+    image: linuxserver/sonarr:4.0.0-develop
+    container_name: sonarr
+    depends_on:
+      - deluge
+      - jackett
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
+      - DOCKER_MODS=gilbn/theme.park:sonarr
+      - PUID=911
+      - PGID=911
+    networks:
+      - torrent
+    volumes:
+      - sonarr:/config/
+      - /video/:/media/
+      - /cache/.import:/media/.import
+      - /cache/downloads/:/downloads/deluge/
+
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    depends_on:
+      - deluge
+      - jackett
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
+      - DOCKER_MODS=gilbn/theme.park:radarr
+      - PUID=911
+      - PGID=911
+    networks:
+      - torrent
+      - caddy
+    volumes:
+      - radarr:/config/
+      - /video/:/media/
+      - /cache/.import/:/media/.import/
+      - /cache/downloads/:/downloads/deluge/
+
+  deluge:
+    image: binhex/arch-delugevpn
+    container_name: deluge
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    env_file: ./deluge.env
+    environment:
+      - PUID=911
+      - PGID=911
+    networks:
+      - torrent
+    volumes:
+      - deluge:/config/
+      - ./server.ovpn:/config/openvpn/server.ovpn # ! required
+      - ./credentials.conf:/config/openvpn/credentials.conf
+      - /cache/blackhole/:/blackhole/
+      - /cache/downloads/:/downloads/deluge/
+
+  jackett:
+    image: ghcr.io/linuxserver/jackett
+    container_name: jackett
+    depends_on:
+      - deluge
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
+      - AUTO_UPDATE=false
+      - DOCKER_MODS=gilbn/theme.park:jackett
+      - PUID=911
+      - PGID=911
+    networks:
+      - torrent
+    volumes:
+      - jackett:/config/
+      - /cache/blackhole/:/blackhole/
+
+volumes:
+  radarr:
+    name: radarr
+  sonarr:
+    name: sonarr
+  deluge:
+    name: deluge
+  jackett:
+    name: jackett
+
+networks:
+  torrent:
+    name: torrent

@@ -3,15 +3,14 @@ version: '3.9'
 services:
   acme:
     image: neilpang/acme.sh
-    container_name: acme
+    container_name: openldap-acme
     restart: unless-stopped
-    networks:
-      - acme
+    env_file: .env
     volumes:
-      - ./data:/acme.sh
+      - openldap-acme:/acme.sh
+      - ./certificates:/certificates
       - ./account.conf:/acme.sh/account.conf
-#      - /etc/timezone:/etc/timezone:ro
-#      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     command: daemon
 
 networks:
@@ -20,5 +19,5 @@ networks:
 
 # issue new cert
 # docker exec acme acme.sh --issue --dns dns_cf --server letsencrypt -d 'domain.tld' -d '*.domain.tld'
-# deploy cert to synology
-# docker exec acme acme.sh --deploy -d domain.tld --deploy-hook synology_dsm --insecure
+# install cert to folder
+# docker exec openldap-acme acme.sh --install-cert -d domain.tld --cert-file /certificates/cert.pem --key-file /certificates/key.pem --ca-file /certificates/ca.pem --reloadcmd "..."

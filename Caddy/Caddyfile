@@ -1,14 +1,54 @@
-http://domain.without.tls {
+# global
 
-}
-
-domain.with.tls {
-
-}
-
-# with cf plugin
-domain.with.cf.tls {
-  tls {env.CLOUDFLARE_EMAIL} {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+{
+  servers {
+    #trusted_proxies static 192.168.0.0/32
   }
+}
+
+# custom snippets
+
+(hsts_header) {
+ header {
+  +Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+ }
+}
+
+(allow_local_access_only) {
+ @denied not remote_ip private_ranges
+ abort @denied
+}
+
+(with_cloudflare_tls) {
+ tls {
+  dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+ }
+}
+
+# abort everything not sent to a valid vhost
+
+:80 {
+ abort
+}
+
+:443 {
+ abort
+}
+
+# domains
+
+*.domain.tld, domain.tld {
+
+ import with_cloudflare_tls
+ import hsts_header
+
+ @root host domain.tld
+ handle @root {
+  respond 403
+ }
+
+ handle {
+  abort
+ }
+
 }
