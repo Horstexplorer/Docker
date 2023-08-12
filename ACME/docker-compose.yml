@@ -3,21 +3,21 @@ version: '3.9'
 services:
   acme:
     image: neilpang/acme.sh
-    container_name: openldap-acme
+    container_name: acme
     restart: unless-stopped
     env_file: .env
     volumes:
-      - openldap-acme:/acme.sh
+      - acme:/acme.sh
       - ./certificates:/certificates
       - ./account.conf:/acme.sh/account.conf
       - /var/run/docker.sock:/var/run/docker.sock
     command: daemon
 
-networks:
+volumes:
   acme:
     name: acme
 
 # issue new cert
 # docker exec acme acme.sh --issue --dns dns_cf --server letsencrypt -d 'domain.tld' -d '*.domain.tld'
 # install cert to folder
-# docker exec openldap-acme acme.sh --install-cert -d domain.tld --cert-file /certificates/cert.pem --key-file /certificates/key.pem --ca-file /certificates/ca.pem --reloadcmd "..."
+# docker exec acme acme.sh --install-cert -d domain.tld --cert-file /certificates/cert.pem --key-file /certificates/key.pem --ca-file /certificates/ca.pem --reloadcmd "..."
