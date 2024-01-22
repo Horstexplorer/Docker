@@ -2,7 +2,7 @@ version: '3.9'
 services:
   wg-easy:
     env_file: .env
-    image: weejewel/wg-easy
+    image: ghcr.io/wg-easy/wg-easy
     container_name: wg-easy
     volumes:
       - .:/etc/wireguard

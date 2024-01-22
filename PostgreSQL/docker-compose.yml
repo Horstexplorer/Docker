@@ -2,14 +2,14 @@ version: '3.9'
 
 services:
   postgresql:
-    image: postgres:15.2-alpine
-    container_name: postgresql
+    image: bitnami/postgresql:16.1.0
+    container_name: keycloak-db
     restart: unless-stopped
     networks:
-      - postgresql # runs on port 5432 with example conf
+      - keycloak
     env_file: .env
     volumes:
-      - ./postgresql-data:/var/lib/postgresql/data
+      - keycloak-db:/bitnami/postgresql
 #      - /etc/timezone:/etc/timezone:ro
 #      - /etc/localtime:/etc/localtime:ro
 
