@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   go-socks5-proxy-ipa-ipb-ipc-ipd:
     container_name: socks5

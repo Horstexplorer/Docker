@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   teamspeak3:
     container_name: teamspeak3

@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   sonarr:
     image: linuxserver/sonarr:4.0.0-develop
