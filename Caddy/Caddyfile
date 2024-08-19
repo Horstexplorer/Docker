@@ -21,7 +21,10 @@
 
 (with_cloudflare_tls) {
  tls {
-  dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  dns cloudflare {
+    zone_token {env.CLOUDFLARE_ZONE_TOKEN}
+    api_token {env.CLOUDFLARE_API_TOKEN}
+  }
   protocols tls1.3
  }
 }

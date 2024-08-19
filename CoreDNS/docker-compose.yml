@@ -10,6 +10,7 @@ services:
       - 53:53
       - 53:53/udp
     volumes:
-      - ./config:/etc/coredns
+      - ./Corefile:/etc/coredns/Corefile
+      - ./hosts.conf:/etc/coredns/hosts.conf
 #      - /etc/timezone:/etc/timezone:ro
 #      - /etc/localtime:/etc/localtime:ro

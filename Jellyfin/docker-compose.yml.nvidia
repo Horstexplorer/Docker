@@ -1,0 +1,22 @@
+services:
+  jellyfin:
+    image: linuxserver/jellyfin
+    container_name: jellyfin
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      - TZ=Europe/Berlin
+      - NVIDIA_VISIBLE_DEVICES=all
+    networks:
+      - caddy
+    volumes:
+      - jellyfin:/config
+      - /video:/data
+
+volumes:
+  jellyfin:
+    name: jellyfin
+
+networks:
+  caddy:
+    external: true

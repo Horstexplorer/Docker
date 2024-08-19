@@ -4,10 +4,14 @@ services:
     container_name: uptime-kuma
     restart: unless-stopped
     volumes:
-      - ./uptime-kuma-data:/app/data
-    networks:
-      - uptime-kuma
+      - uptime-kuma:/app/data
+#    networks:
+#      - caddy
 
-networks:
+volumes:
   uptime-kuma:
     name: uptime-kuma
+
+#networks:
+#  caddy:
+#    external: true

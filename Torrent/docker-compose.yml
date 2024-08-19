@@ -1,92 +1,134 @@
 services:
   sonarr:
-    image: linuxserver/sonarr:4.0.0-develop
+    image: linuxserver/sonarr
     container_name: sonarr
-    depends_on:
-      - deluge
-      - jackett
     restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
       - DOCKER_MODS=gilbn/theme.park:sonarr
-      - PUID=911
-      - PGID=911
+      - PUID=1000
+      - PGID=1000
     networks:
       - torrent
+#      - caddy
     volumes:
       - sonarr:/config/
-      - /video/:/media/
-      - /cache/.import:/media/.import
-      - /cache/downloads/:/downloads/deluge/
-
+      - /mnt/media-share/video:/media/video
+      - /mnt/download-cache/.import:/downloads/.import
+      - /mnt/download-cache/:/downloads:ro
   radarr:
     image: linuxserver/radarr
     container_name: radarr
-    depends_on:
-      - deluge
-      - jackett
     restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
       - DOCKER_MODS=gilbn/theme.park:radarr
-      - PUID=911
-      - PGID=911
+      - PUID=1000
+      - PGID=1000
     networks:
       - torrent
-      - caddy
+#      - caddy
     volumes:
       - radarr:/config/
-      - /video/:/media/
-      - /cache/.import/:/media/.import/
-      - /cache/downloads/:/downloads/deluge/
-
-  deluge:
-    image: binhex/arch-delugevpn
-    container_name: deluge
+      - /mnt/media-share/video:/media/video
+      - /mnt/download-cache/.import:/downloads/.import
+      - /mnt/download-cache/:/downloads:ro
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: lidarr
     restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-    env_file: ./deluge.env
     environment:
-      - PUID=911
-      - PGID=911
+      - TZ=Europe/Berlin
+      - DOCKER_MODS=gilbn/theme.park:lidarr
+      - PUID=1000
+      - PGID=1000
     networks:
       - torrent
+#      - caddy
     volumes:
-      - deluge:/config/
-      - ./server.ovpn:/config/openvpn/server.ovpn # ! required
-      - ./credentials.conf:/config/openvpn/credentials.conf
-      - /cache/blackhole/:/blackhole/
-      - /cache/downloads/:/downloads/deluge/
-
+      - lidarr:/config/
+      - /mnt/media-share/audio:/media/audio
+      - /mnt/download-cache/.import:/downloads/.import
+      - /mnt/download-cache/:/downloads:ro
   jackett:
-    image: ghcr.io/linuxserver/jackett
+    image: linuxserver/jackett
     container_name: jackett
-    depends_on:
-      - deluge
     restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
       - AUTO_UPDATE=false
       - DOCKER_MODS=gilbn/theme.park:jackett
-      - PUID=911
-      - PGID=911
+      - PUID=1000
+      - PGID=1000
     networks:
+#      - caddy
       - torrent
     volumes:
       - jackett:/config/
-      - /cache/blackhole/:/blackhole/
+      - blackhole:/blackhole/
+
+  deluge:
+    image: binhex/arch-delugevpn
+    container_name: deluge
+    restart: unless-stopped
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - VPN_ENABLED=yes
+      - VPN_PROV=custom
+      - VPN_CLIENT=openvpn
+      - STRONG_CERTS=yes
+      - ENABLE_PRIVOXY=no
+      - LAN_NETWORK=192.168.0.0/16
+      - NAME_SERVERS=1.1.1.1,1.0.0.1
+    networks:
+#      - caddy
+      - torrent
+    volumes:
+      - deluge:/config/
+      - ./server.ovpn:/config/openvpn/server.ovpn
+      - ./credentials.conf:/config/openvpn/credentials.conf
+      - blackhole:/blackhole/
+      - /mnt/download-cache/:/downloads
+#  qbittorrent:
+#    image: dyonr/qbittorrentvpn
+#    container_name: qbittorrent
+#    restart: unless-stopped
+#    privileged: true
+#    environment:
+#      - PUID=1000
+#      - PGID=1000
+#      - VPN_ENABLED=yes
+#      - VPN_TYPE=openvpn
+#      - LAN_NETWORK=192.168.0.0/16
+#    networks:
+#      - caddy
+#    volumes:
+#      - qbittorrent:/config/
+#      - blackhole:/blackhole/
+#      - /mnt/download-cache/:/downloads/
 
 volumes:
-  radarr:
-    name: radarr
   sonarr:
     name: sonarr
-  deluge:
-    name: deluge
+  radarr:
+    name: radarr
+  lidarr:
+    name: lidarr
   jackett:
     name: jackett
+  blackhole:
+    name: blackhole
+  deluge:
+    name: deluge
+  #qbittorrent:
+  #  name: qbittorrent
 
 networks:
   torrent:
     name: torrent
+#  caddy:
+#    external: true

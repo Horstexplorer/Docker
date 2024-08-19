@@ -1,8 +1,12 @@
 services:
   wg-easy:
-    env_file: .env
     image: ghcr.io/wg-easy/wg-easy
     container_name: wg-easy
+    environment:
+      - TZ=Europe/Berlin
+      - WG_HOST=domain.tld
+      - PASSWORD=
+      - WG_DEFAULT_DNS=8.8.8.8
     volumes:
       - .:/etc/wireguard
     ports:
