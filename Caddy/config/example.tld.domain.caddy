@@ -1,0 +1,21 @@
+#
+# Domain Scoped Configuration
+#
+# example.tld
+#
+
+*.example.tld, example.tld {
+
+  import with_cloudflare_tls
+  import hsts_header
+
+  @root host domain.tld
+  handle @root {
+    respond 403
+  }
+
+  handle {
+    abort
+  }
+
+}

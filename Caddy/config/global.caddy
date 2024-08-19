@@ -1,0 +1,17 @@
+#
+# Global Configuration
+#
+
+{
+
+}
+
+# abort everything not sent to a valid mapper
+
+:80 {
+  abort
+}
+
+:443 {
+  abort
+}

@@ -1,0 +1,48 @@
+#
+# Configuration Snippets
+#
+
+# Adds an HSTS header to the response
+(hsts_header) {
+  header {
+    +Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+  }
+}
+
+# Aborts handling of requests from non private ranged ips
+(allow_local_access_only) {
+  @denied not remote_ip private_ranges
+  abort @denied
+}
+
+# Configures tls for cloudflare domains
+(with_cloudflare_tls) {
+  tls {
+    dns cloudflare {
+      zone_token {env.CLOUDFLARE_ZONE_TOKEN}
+      api_token {env.CLOUDFLARE_API_TOKEN}
+    }
+    protocols tls1.3
+  }
+}
+
+# Reverse proxy matching one or multiple hostnames
+# args[0] = proxy destination
+# args[1:] = hostnames
+(hostname_reverse_proxy) {
+  @{args[1]} host {args[1:]}
+  handle @{args[1]}  {
+    reverse_proxy {args[0]}
+  }
+}
+
+# Reverse proxy matching one or multiple hostnames with limited by private range ips
+# args[0] = proxy destination
+# args[1:] = hostnames
+(local_only_hostname_reverse_proxy) {
+  @{args[1]} host {args[1:]}
+  handle @{args[1]}  {
+    import allow_local_access_only
+    reverse_proxy {args[0]}
+  }
+}

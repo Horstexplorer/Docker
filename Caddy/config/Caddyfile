@@ -1,0 +1,10 @@
+#
+# Caddy Webserver Configuration
+#
+
+# Include configuration snippets
+import snippets.caddy
+# Include global configuration
+import global.caddy
+# Include domain specific configurations
+import *.domain.caddy

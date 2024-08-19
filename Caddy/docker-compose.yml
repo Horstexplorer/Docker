@@ -16,7 +16,7 @@ services:
       - caddy
     volumes:
       - caddy:/data
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./config/:/etc/caddy/
 #      - /etc/timezone:/etc/timezone:ro
 #      - /etc/localtime:/etc/localtime:ro
 
