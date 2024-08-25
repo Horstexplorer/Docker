@@ -14,6 +14,7 @@ services:
     volumes:
       - sonarr:/config/
       - /mnt/media-share/video:/media/video
+      - /mnt/media-share/import:/media/import
       - /mnt/download-cache/.import:/downloads/.import
       - /mnt/download-cache/:/downloads:ro
   radarr:
@@ -31,6 +32,7 @@ services:
     volumes:
       - radarr:/config/
       - /mnt/media-share/video:/media/video
+      - /mnt/media-share/import:/media/import
       - /mnt/download-cache/.import:/downloads/.import
       - /mnt/download-cache/:/downloads:ro
   lidarr:
@@ -48,6 +50,7 @@ services:
     volumes:
       - lidarr:/config/
       - /mnt/media-share/audio:/media/audio
+      - /mnt/media-share/import:/media/import
       - /mnt/download-cache/.import:/downloads/.import
       - /mnt/download-cache/:/downloads:ro
   jackett:
