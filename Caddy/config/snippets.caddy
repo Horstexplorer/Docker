@@ -26,23 +26,23 @@
   }
 }
 
-# Reverse proxy matching one or multiple hostnames
-# args[0] = proxy destination
-# args[1:] = hostnames
+# Reverse proxy matching hostname
+# args[0] = hostname
+# args[1] = proxy destination
 (hostname_reverse_proxy) {
-  @{args[1]} host {args[1:]}
-  handle @{args[1]}  {
-    reverse_proxy {args[0]}
+  @{args[0]} host {args[0]}
+  handle @{args[0]}  {
+    reverse_proxy {args[1]}
   }
 }
 
-# Reverse proxy matching one or multiple hostnames with limited by private range ips
-# args[0] = proxy destination
-# args[1:] = hostnames
+# Reverse proxy matching hostname, with limited access by private range ips
+# args[0] = hostname
+# args[1] = proxy destination
 (local_only_hostname_reverse_proxy) {
-  @{args[1]} host {args[1:]}
-  handle @{args[1]}  {
+  @{args[0]} host {args[0]}
+  handle @{args[0]}  {
     import allow_local_access_only
-    reverse_proxy {args[0]}
+    reverse_proxy {args[1]}
   }
 }

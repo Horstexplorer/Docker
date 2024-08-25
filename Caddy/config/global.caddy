@@ -3,7 +3,12 @@
 #
 
 {
-
+  servers {
+    strict_sni_host on
+    trusted_proxies static private_ranges
+    trusted_proxies cloudflare
+    trusted_proxies_strict
+  }
 }
 
 # abort everything not sent to a valid mapper
