@@ -1,0 +1,39 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server
+    container_name: vaultwarden
+    restart: unless-stopped
+    env_file: vaultwarden.env
+    networks:
+      - vaultwarden
+      - caddy
+    volumes:
+      - vaultwarden:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - postgresql
+
+  postgresql:
+    image: bitnami/postgresql
+    container_name: postgresql-vaultwarden
+    restart: unless-stopped
+    env_file: postgresql-vaultwarden.env
+    networks:
+      - vaultwarden
+    volumes:
+      - postgresql-vaultwarden:/bitnami/postgresql
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+volumes:
+  vaultwarden:
+    name: vaultwarden
+  postgresql-vaultwarden:
+    name: postgresql-vaultwarden
+
+networks:
+  vaultwarden:
+    name: vaultwarden
+  caddy:
+    external: true
