@@ -11,8 +11,17 @@
 
 # Aborts handling of requests from non private ranged ips
 (allow_local_access_only) {
-  @denied not remote_ip private_ranges
-  abort @denied
+  @is_remote_access not remote_ip private_ranges
+  abort @is_remote_access
+}
+
+# Aborts handling of requests from potential untrusted proxies
+(abort_untrusted_proxies) {
+  @is_untrusted_proxy {
+    header X-Forwarded-For *
+    expression {client_ip} == {remote_host}
+  }
+  abort @is_untrusted_proxy
 }
 
 # Configures tls for cloudflare domains
