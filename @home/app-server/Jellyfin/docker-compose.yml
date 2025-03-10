@@ -1,0 +1,20 @@
+services:
+  jellyfin:
+    image: linuxserver/jellyfin
+    container_name: jellyfin
+    restart: unless-stopped
+    runtime: nvidia
+    env_file: jellyfin.env
+    networks:
+      - caddy
+    volumes:
+      - jellyfin:/config
+      - /mnt/media-share:/data
+
+volumes:
+  jellyfin:
+    name: jellyfin
+
+networks:
+  caddy:
+    external: true
