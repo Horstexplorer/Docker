@@ -1,0 +1,10 @@
+{
+  "ipv6": true,
+  "fixed-cidr-v6": "fd00:c0a8:0514:0001::/64",
+  "runtimes": {
+    "nvidia": {
+      "args": [],
+      "path": "nvidia-container-runtime"
+    }
+  }
+}

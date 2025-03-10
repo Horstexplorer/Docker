@@ -1,0 +1,42 @@
+services:
+  unifi-network-application:
+    image: linuxserver/unifi-network-application:latest
+    container_name: unifi-network-application
+    env_file: unifi-network-application.env
+    volumes:
+      - unifi:/config
+    networks:
+      - unifi
+    ports:
+      - 8443:8443
+      - 3478:3478/udp
+      - 10001:10001/udp
+      - 8080:8080
+      - 1900:1900/udp #optional
+      - 8843:8843 #optional
+      - 8880:8880 #optional
+      - 6789:6789 #optional
+      - 5514:5514/udp #optional
+    restart: unless-stopped
+    depends_on:
+      - unifi-db
+  unifi-db:
+    image: mongo:7.0.17
+    container_name: unifi-db
+    env_file: unifi-db.env
+    volumes:
+      - unifi-data:/data/db
+      - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    restart: unless-stopped
+    networks:
+      - unifi
+
+networks:
+  unifi:
+    name: unifi
+
+volumes:
+  unifi:
+    name: unifi
+  unifi-data:
+    name: unifi-data

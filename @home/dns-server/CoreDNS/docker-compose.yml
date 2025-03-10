@@ -1,0 +1,16 @@
+services:
+  coredns:
+    image: coredns/coredns
+    container_name: coredns
+    restart: always
+    command: -conf /etc/coredns/coredns.conf
+    hostname: <HOSTNAME_GOES_HERE>
+    user: 0:0
+    ports:
+      - 53:53
+      - 53:53/udp
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - ./coredns.conf:/etc/coredns/coredns.conf
+      - ./hosts.conf:/etc/coredns/hosts.conf
