@@ -1,0 +1,47 @@
+services:
+  searxng:
+    # https://docs.searxng.org/admin/installation-docker.html
+    container_name: searxng
+    image: docker.io/searxng/searxng:latest
+    restart: unless-stopped
+    env_file: searxng.env
+    networks:
+      - searxng
+    ports:
+      - 8080:8080
+    volumes:
+      - searxng-data:/etc/searxng:rw
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+  searxng-valkey:
+    # https://hub.docker.com/r/valkey/valkey/
+    container_name: searxng-valkey
+    image: docker.io/valkey/valkey:8-alpine
+    command: valkey-server --save 30 1 --loglevel warning
+    restart: unless-stopped
+    networks:
+      - searxng
+    volumes:
+      - searxng-valkey-data:/data
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+
+volumes:
+  searxng-valkey-data:
+    name: searxng-valkey-data
+  searxng-data:
+    name: searxng-data
+
+networks:
+  searxng:
+    name: searxng
+  caddy:
+    external: true

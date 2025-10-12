@@ -1,0 +1,33 @@
+name: Caddy
+services:
+  # https://hub.docker.com/_/caddy
+  caddy:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: caddy
+    restart: unless-stopped
+    init: true
+    env_file: caddy.env
+    volumes:
+      - caddy:/data
+      - ./config/:/etc/caddy/
+    ports:
+      - 80:80/tcp
+      - 80:80/udp
+      - 443:443/tcp
+      - 443:443/udp
+    networks:
+      - caddy
+
+volumes:
+  caddy:
+    name: caddy
+
+networks:
+  caddy:
+    name: caddy
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd00:c0a8:0514:0002::/64

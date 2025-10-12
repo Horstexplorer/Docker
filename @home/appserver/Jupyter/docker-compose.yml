@@ -1,0 +1,28 @@
+name: Jupyter
+services:
+  jupyter-notebook:
+    # https://hub.docker.com/r/jupyter/minimal-notebook/
+    image: quay.io/jupyter/minimal-notebook:latest
+    container_name: jupyter-notebook
+    restart: unless-stopped
+    command: "start-notebook.sh --NotebookApp.token=<tokenhere>"
+    volumes:
+      - jupyter-notebook:/home/jovyan
+      - jupyter-conda-envs:/opt/conda/envs
+      - jupyter-conda-pkgs:/opt/conda/pkgs
+    networks:
+      - jupyter
+    ports:
+      - 8888:8888
+
+volumes:
+  jupyter-notebook:
+    name: jupyter-notebook
+  jupyter-conda-envs:
+    name: jupyter-conda-envs
+  jupyter-conda-pkgs:
+    name: jupyter-conda-pkgs
+
+networks:
+  jupyter:
+    name: jupyter

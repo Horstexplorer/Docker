@@ -1,0 +1,37 @@
+name: Vaultwarden
+services:
+  vaultwarden:
+    # https://github.com/dani-garcia/vaultwarden
+    image: vaultwarden/server
+    container_name: vaultwarden
+    restart: unless-stopped
+    env_file: vaultwarden.env
+    volumes:
+      - vaultwarden:/data
+    networks:
+      - vaultwarden
+    ports:
+      - 8080:80
+    depends_on:
+      - vaultwarden-postgresql
+
+  vaultwarden-postgresql:
+    # https://hub.docker.com/_/postgres
+    image: postgres:17
+    container_name: vaultwarden-postgresql
+    restart: unless-stopped
+    env_file: vaultwarden-postgresql.env
+    volumes:
+      - vaultwarden-postgresql:/var/lib/postgresql/data
+    networks:
+      - vaultwarden
+
+volumes:
+  vaultwarden:
+    name: vaultwarden
+  vaultwarden-postgresql:
+    name: vaultwarden-postgresql
+
+networks:
+  vaultwarden:
+    name: vaultwarden

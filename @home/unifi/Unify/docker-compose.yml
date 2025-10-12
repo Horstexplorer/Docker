@@ -1,0 +1,52 @@
+services:
+  unifi-network-application:
+    # https://docs.linuxserver.io/images/docker-unifi-network-application/
+    image: linuxserver/unifi-network-application:latest
+    container_name: unifi-network-application
+    depends_on:
+      - unifi-mongodb
+    restart: unless-stopped
+    env_file: unifi-network-application.env
+    volumes:
+      - unifi:/config
+    networks:
+      - unifi
+    ports:
+      - 8443:8443
+      - 3478:3478/udp
+      - 10001:10001/udp
+      - 8080:8080
+      - 1900:1900/udp #optional
+      - 8843:8843 #optional
+      - 8880:8880 #optional
+      - 6789:6789 #optional
+      - 5514:5514/udp #optional
+
+  unifi-mongodb:
+    # https://hub.docker.com/_/mongo
+    image: mongo:8.0.12
+    container_name: unifi-mongodb
+    restart: unless-stopped
+    env_file: unifi-mongodb.env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=<rootpass>
+      - MONGO_USER=unifi
+      - MONGO_PASS=<pass>
+      - MONGO_DBNAME=unifi
+      - MONGO_AUTHSOURCE=admin
+    volumes:
+      - unifi-mongodb:/data/db
+      - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    networks:
+      - unifi
+
+networks:
+  unifi:
+    name: unifi
+
+volumes:
+  unifi:
+    name: unifi
+  unifi-mongodb:
+    name: unifi-mongodb

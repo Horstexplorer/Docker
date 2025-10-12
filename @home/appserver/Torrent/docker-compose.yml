@@ -1,0 +1,106 @@
+name: Torrent
+services:
+  sonarr:
+    # https://docs.linuxserver.io/images/docker-sonarr/
+    image: lscr.io/linuxserver/sonarr
+    container_name: sonarr
+    restart: unless-stopped
+    env_file: sonarr.env
+    volumes:
+      - sonarr:/config/
+      - /mnt/media-share/video:/media/video
+      - /mnt/media-share/import:/media/import
+      - /mnt/cache/.import:/downloads/.import
+      - /mnt/cache/:/downloads:ro
+    networks:
+      - torrent
+    ports:
+      - 8989:8989
+  radarr:
+    # https://docs.linuxserver.io/images/docker-radarr/
+    image: lscr.io/linuxserver/radarr
+    container_name: radarr
+    restart: unless-stopped
+    env_file: radarr.env
+    volumes:
+      - radarr:/config/
+      - /mnt/media-share/video:/media/video
+      - /mnt/media-share/import:/media/import
+      - /mnt/cache/.import:/downloads/.import
+      - /mnt/cache/:/downloads:ro
+    networks:
+      - torrent
+    ports:
+      - 7878:7878
+  lidarr:
+    # https://docs.linuxserver.io/images/docker-lidarr/
+    image: lscr.io/linuxserver/lidarr
+    container_name: lidarr
+    restart: unless-stopped
+    env_file: lidarr.env
+    volumes:
+      - lidarr:/config/
+      - /mnt/media-share/audio:/media/audio
+      - /mnt/media-share/import:/media/import
+      - /mnt/cache/.import:/downloads/.import
+      - /mnt/cache/:/downloads:ro
+    networks:
+      - torrent
+    ports:
+      - 8686:8686
+  jackett:
+    # https://docs.linuxserver.io/images/docker-jackett/
+    image: lscr.io/linuxserver/jackett
+    container_name: jackett
+    restart: unless-stopped
+    env_file: jackett.env
+    volumes:
+      - jackett:/config/
+      - blackhole:/blackhole/
+    networks:
+      - torrent
+    ports:
+      - 9117:9117
+
+  deluge:
+    # https://github.com/binhex/arch-delugevpn
+    image: binhex/arch-delugevpn
+    container_name: deluge
+    restart: unless-stopped
+    env_file: deluge.env
+    privileged: true
+    volumes:
+      - deluge:/config/
+      - ./server.ovpn:/config/openvpn/server.ovpn
+      - ./credentials.conf:/config/openvpn/credentials.conf
+      - blackhole:/downloads/.blackhole/
+      - /mnt/cache/:/downloads/
+    networks:
+      - torrent
+    ports:
+      - 8112:8112
+      - 8118:8118
+      - 9118:9118
+      - 58846:58846
+      - 58946:58946
+      - 58946:58946/udp
+    cap_add:
+      - NET_ADMIN
+
+volumes:
+  sonarr:
+    name: sonarr
+  radarr:
+    name: radarr
+  lidarr:
+    name: lidarr
+  jackett:
+    name: jackett
+  blackhole:
+    name: blackhole
+  deluge:
+    name: deluge
+
+networks:
+  torrent:
+    name: torrent

@@ -1,0 +1,8 @@
+#
+# Caddy Webserver Configuration
+#
+
+# Include default configurations
+import ./*.defaults.caddy
+# Include domain specific configurations
+import ./domain/*.domain.caddy

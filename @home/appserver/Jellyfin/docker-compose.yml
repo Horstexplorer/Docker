@@ -1,0 +1,24 @@
+name: Jellyfin
+services:
+  jellyfin:
+    # https://docs.linuxserver.io/images/docker-jellyfin/
+    image: lscr.io/linuxserver/jellyfin
+    container_name: jellyfin
+    restart: unless-stopped
+    runtime: nvidia
+    env_file: jellyfin.env
+    volumes:
+      - jellyfin:/config
+      - /mnt/media-share:/data
+    networks:
+      - jellyfin
+    ports:
+      - 8096:8096
+
+volumes:
+  jellyfin:
+    name: jellyfin
+
+networks:
+  jellyfin:
+    name: jellyfin

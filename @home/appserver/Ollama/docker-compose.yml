@@ -1,0 +1,41 @@
+name: Ollama
+services:
+  ollama:
+    # https://github.com/ollama/ollama
+    container_name: ollama
+    image: ollama/ollama
+    restart: unless-stopped
+    env_file: ollama.env
+    volumes:
+      - ollama:/root/.ollama
+    networks:
+      - ollama
+    ports:
+      - 11434:11434
+
+  ollama-open-webui:
+    # https://github.com/open-webui/open-webui
+    container_name: ollama-open-webui
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    env_file: ollama-open-webui.env
+    volumes:
+      - open-webui:/app/backend/data
+    networks:
+      - ollama
+    ports:
+      - 8080:8080
+    depends_on:
+      - ollama
+
+networks:
+  ollama:
+    name: ollama
+  searxng:
+    external: true
+
+volumes:
+  ollama:
+    name: ollama
+  open-webui:
+    name: open-webui

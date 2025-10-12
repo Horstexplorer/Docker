@@ -1,0 +1,37 @@
+name: Wyoming
+services:
+  wyoming-whisper:
+    # https://docs.linuxserver.io/images/docker-faster-whisper/
+    image: lscr.io/linuxserver/faster-whisper:gpu
+    container_name: wyoming-whisper
+    restart: unless-stopped
+    runtime: nvidia
+    env_file: wyoming-whisper.env
+    volumes:
+      - wyoming-whisper:/config
+    networks:
+      - wyoming
+    ports:
+      - 10300:10300
+
+  wyoming-piper:
+    # https://docs.linuxserver.io/images/docker-piper/
+    image: lscr.io/linuxserver/piper:gpu
+    container_name: wyoming-piper
+    restart: unless-stopped
+    runtime: nvidia
+    env_file: wyoming-piper.env
+    volumes:
+      - wyoming-piper:/config
+    ports:
+      - 10200:10200
+
+volumes:
+  wyoming-whisper:
+    name: wyoming-whisper
+  wyoming-piper:
+    name: wyoming-piper
+
+networks:
+  wyoming:
+    name: wyoming
