@@ -26,6 +26,11 @@ The following environments and services are covered in this documentation:
 - [Unifi](@home/unifi)
   - [Unifi Network Application](@home/unifi/Unify)
 
+### **@netcup**
+
+- [Electric-Jaguar](@netcup/electric-jaguar)
+- [Luminous-Lynx](@netcup/luminous-lynx)
+
 ## Preparing a new environment
 Starting from a fresh Debian installation, these steps will get Docker set up in a way that keeps behavior and file locations consistent across systems, which makes moving or copying setups much easier.
 
