@@ -1,0 +1,6 @@
+# Adds an HSTS header to the response
+(hsts_header) {
+  header {
+    +Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+  }
+}

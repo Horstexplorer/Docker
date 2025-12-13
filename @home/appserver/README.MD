@@ -22,7 +22,7 @@ Update `/etc/docker/daemon.json` to include the following:
 ```json
 {
   "ipv6": true,
-  "fixed-cidr-v6": "fd00:c0a8:0514:0001::/64",
+  "fixed-cidr-v6": "fd00:####:####:0001::/64",
   "ip6tables": true,
   "runtimes": {
     "nvidia": {

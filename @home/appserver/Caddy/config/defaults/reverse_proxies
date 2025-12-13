@@ -1,39 +1,3 @@
-#
-# Configuration Snippets
-#
-
-# Adds an HSTS header to the response
-(hsts_header) {
-  header {
-    +Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-  }
-}
-
-# Aborts handling of requests from non private ranged ips
-(allow_local_access_only) {
-  @is_remote_access not remote_ip private_ranges
-  abort @is_remote_access
-}
-
-(abort_untrusted_proxies) {
-  @is_untrusted_proxy {
-    header X-Forwarded-For *
-    expression {client_ip} == {remote_host}
-  }
-  abort @is_untrusted_proxy
-}
-
-# Configures tls for cloudflare domains
-(with_cloudflare_tls) {
-  tls {
-    dns cloudflare {
-      zone_token {env.CLOUDFLARE_ZONE_TOKEN}
-      api_token {env.CLOUDFLARE_API_TOKEN}
-    }
-    protocols tls1.3
-  }
-}
-
 # Reverse proxy matching hostname
 # args[0] = hostname
 # args[1] = proxy destination

@@ -1,10 +1,7 @@
-#
-# Global Configuration
-#
-
+# Global defaults for all servers
 {
   servers {
-#    metrics
+    # metrics
     strict_sni_host on
     trusted_proxies static private_ranges
     trusted_proxies cloudflare
@@ -12,12 +9,7 @@
   }
 }
 
-# abort everything not sent to a valid mapper
-
-:80 {
-  abort
-}
-
-:443 {
+# Default abort for unhandled requests on ports 80 and 443
+:80, :443 {
   abort
 }

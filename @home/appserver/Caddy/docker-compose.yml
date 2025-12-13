@@ -30,4 +30,4 @@ networks:
     enable_ipv6: true
     ipam:
       config:
-        - subnet: fd00:c0a8:0514:0002::/64
+        - subnet: fd00:####:####:0002::/64

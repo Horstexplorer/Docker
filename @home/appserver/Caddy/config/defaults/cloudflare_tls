@@ -1,0 +1,10 @@
+# Configures tls for cloudflare domains
+(with_cloudflare_tls) {
+  tls {
+    dns cloudflare {
+      zone_token {env.CLOUDFLARE_ZONE_TOKEN}
+      api_token {env.CLOUDFLARE_API_TOKEN}
+    }
+    protocols tls1.3
+  }
+}
