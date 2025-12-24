@@ -10,7 +10,12 @@ services:
       - wireguard:/etc/wireguard
       - /lib/modules:/lib/modules:ro
     networks:
-      - wireguard
+      wireguard:
+        interface_name: eth0
+        gw_priority: 1
+      caddy:
+        interface_name: eth1
+        gw_priority: 0
     ports:
       - "51820:51820/udp"
       - "51821:51821/tcp"
@@ -31,3 +36,5 @@ volumes:
 networks:
   wireguard:
     name: wireguard
+    driver: bridge
+    enable_ipv6: true
