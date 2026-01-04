@@ -29,6 +29,8 @@ The following environments and services are covered in this documentation:
 ### **@netcup**
 
 - [Electric-Jaguar](@netcup/electric-jaguar)
+  - [Caddy](@netcup/electric-jaguar/Caddy)
+  - [Matrix](@netcup/electric-jaguar/Matrix)
 - [Luminous-Lynx](@netcup/luminous-lynx)
 
 ## Preparing a new environment
@@ -99,3 +101,5 @@ Additional setup may be required depending on the environment’s hardware, such
 
 - **Documentation:**  
   Add a comment above each image declaration with relevant setup information (e.g., a documentation URL).
+
+## See [How to`s](how-to%60s) for more specific guides on managing services.

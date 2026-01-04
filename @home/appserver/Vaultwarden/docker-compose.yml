@@ -17,12 +17,12 @@ services:
 
   vaultwarden-postgresql:
     # https://hub.docker.com/_/postgres
-    image: postgres:17
+    image: postgres:18
     container_name: vaultwarden-postgresql
     restart: unless-stopped
     env_file: vaultwarden-postgresql.env
     volumes:
-      - vaultwarden-postgresql:/var/lib/postgresql/data
+      - vaultwarden-postgresql:/var/lib/postgresql
     networks:
       - vaultwarden
 

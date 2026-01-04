@@ -1,0 +1,7 @@
+{
+  "defaultHomeserver": 0,
+  "homeserverList": [
+    "<domain.tld>"
+  ],
+  "allowCustomHomeservers": false
+}

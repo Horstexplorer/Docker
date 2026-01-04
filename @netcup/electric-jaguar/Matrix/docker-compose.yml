@@ -1,0 +1,68 @@
+services:
+  matrix-web:
+    image: ghcr.io/cinnyapp/cinny:latest
+    container_name: matrix-web
+    restart: unless-stopped
+    env_file: cinny.env
+    volumes:
+      - ./cinny.json:/usr/share/nginx/html/config.json
+    networks:
+      - matrix
+  matrix-synapse:
+    image: ghcr.io/element-hq/synapse
+    container_name: matrix-synapse
+    restart: unless-stopped
+    env_file: synapse.env
+    volumes:
+      - matrix-synapse:/data
+    networks:
+      - matrix
+    depends_on:
+      - matrix-postgresql
+      - matrix-auth
+  matrix-auth:
+    image: ghcr.io/element-hq/matrix-authentication-service
+    container_name: matrix-auth
+    restart: unless-stopped
+    command: "server --config=/data/config.yaml"
+    env_file: matrix-auth.env
+    volumes:
+      - matrix-auth:/data
+      - matrix-synapse:/synapse
+    networks:
+      - matrix
+    depends_on:
+      - matrix-postgresql
+  matrix-postgresql:
+    image: postgres:18
+    container_name: matrix-postgresql
+    restart: unless-stopped
+    env_file: postgresql.env
+    volumes:
+      - ./init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
+      - matrix-postgresql:/var/lib/postgresql
+    networks:
+      - matrix
+  matrix-admin:
+    image: oci.element.io/element-admin:latest
+    container_name: matrix-admin
+    restart: unless-stopped
+    env_file: element-admin.env
+    volumes:
+      - matrix-element-admin:/data
+    networks:
+      - matrix
+
+volumes:
+  matrix-synapse:
+    name: matrix-synapse
+  matrix-postgresql:
+    name: matrix-postgresql
+  matrix-auth:
+    name: matrix-auth
+  matrix-element-admin:
+    name: matrix-element-admin
+
+networks:
+  matrix:
+    name: matrix
