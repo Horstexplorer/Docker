@@ -1,0 +1,29 @@
+services:
+  gobin:
+    image: ghcr.io/topi314/gobin:latest
+    container_name: gobin
+    restart: unless-stopped
+    volumes:
+      - ./gobin.json:/var/lib/gobin/gobin.json
+    networks:
+      - caddy
+      - gobin
+  gobin-postgresql:
+    image: postgres:18
+    container_name: gobin-postgresql
+    restart: unless-stopped
+    env_file: postgresql.env
+    networks:
+      - gobin
+    volumes:
+      - gobin-postgresql:/var/lib/postgresql
+
+volumes:
+  gobin-postgresql:
+    name: gobin-postgresql
+
+networks:
+  gobin:
+    name: gobin
+  caddy:
+    external: true

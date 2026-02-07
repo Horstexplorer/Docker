@@ -1,11 +1,11 @@
-# System: `unifi`
+# System: `flashy-puma`
 
 ## Hardware Requirements
 - **CPU:** `2 Cores`
-- **RAM:** `2 GB`
+- **RAM:** `8 GB`
 - **Storage:** 
-  - Primary OS `32 GB`
-  - Secondary Data `32 GB`
+  - Primary OS `10 GB`
+  - Secondary Data `150 GB`
 
 ## Additional Setup
 ### 1) Apply configuration to docker daemon
@@ -15,7 +15,7 @@ Update `/etc/docker/daemon.json` to include the following:
 {
   "ipv6": true,
   "fixed-cidr-v6": "fd00:####:####:0001::/64",
-  "ip6tables": true,
+  "ipv6tables": true,
   "features": {
     "containerd-snapshotter": true
   }

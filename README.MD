@@ -10,7 +10,7 @@ The following environments and services are covered in this documentation:
 
 - [AppServer](@home/appserver)
   - [Caddy](@home/appserver/Caddy)
-  - [ComfyUi](@home/appserver/ComfyUi)
+  - [GoBin](@home/appserver/GoBin)
   - [Jellyfin](@home/appserver/Jellyfin)
   - [Jupyter](@home/appserver/Jupyter)
   - [Ollama](@home/appserver/Ollama)
@@ -31,6 +31,7 @@ The following environments and services are covered in this documentation:
 - [Electric-Jaguar](@netcup/electric-jaguar)
   - [Caddy](@netcup/electric-jaguar/Caddy)
   - [Matrix](@netcup/electric-jaguar/Matrix)
+- [Flashy-Puma](@netcup/flashy-puma)
 - [Luminous-Lynx](@netcup/luminous-lynx)
 
 ## Preparing a new environment
@@ -52,17 +53,19 @@ To make future environment os upgrades easier, all Docker-related data should be
      mount -a    
      ```  
 
-2. **Copy existing Docker data**  
+2. **Copy existing Docker & Containerd data**  
     ⚠️ Skip this step if data is already present on the partition.
 
     ```bash
     cp -rp /var/lib/docker /mnt/data/
+    cp -rp /var/lib/containerd /mnt/data/
     ```
 
 3. **Create a bind mount to the original Docker location**  
     ```
     # add to fstab
-    # /mnt/data/docker/   /var/lib/docker   none defaults,bind 0 0
+    /mnt/data/docker/        /var/lib/docker      none defaults,bind 0 0
+    /mnt/data/containerd/   /var/lib/containerd   none defaults,bind 0 0
     ```
 
 4. **Setup Docker Compose configuration location**  

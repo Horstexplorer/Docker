@@ -29,6 +29,9 @@ Update `/etc/docker/daemon.json` to include the following:
       "args": [],
       "path": "nvidia-container-runtime"
     }
+  },
+  "features": {
+    "containerd-snapshotter": true
   }
 }
 ```
