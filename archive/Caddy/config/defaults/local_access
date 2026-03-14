@@ -1,0 +1,5 @@
+# Aborts handling of requests from non private ranged ips
+(allow_local_access_only) {
+  @is_remote_access not remote_ip private_ranges
+  abort @is_remote_access
+}

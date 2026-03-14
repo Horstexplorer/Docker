@@ -1,0 +1,8 @@
+# Aborts requests coming from untrusted proxies
+(abort_untrusted_proxies) {
+  @is_untrusted_proxy {
+    header X-Forwarded-For *
+    expression {client_ip} == {remote_host}
+  }
+  abort @is_untrusted_proxy
+}
