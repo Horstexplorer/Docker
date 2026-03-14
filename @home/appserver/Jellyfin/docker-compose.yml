@@ -7,13 +7,21 @@ services:
     restart: unless-stopped
     runtime: nvidia
     env_file: jellyfin.env
+    networks:
+      - jellyfin
+      - traefik
+    expose:
+      - 8096
     volumes:
       - jellyfin:/config
       - /mnt/media-share:/data
-    networks:
-      - jellyfin
-    ports:
-      - 8096:8096
+    labels:
+      traefik.enable: true
+      traefik.http.routers.jellyfin.rule: Host(`jelly.domain.tld`)
+      traefik.http.routers.jellyfin.entrypoints: https
+      traefik.http.routers.jellyfin.middlewares: local-ip-ranges@file
+      traefik.http.routers.jellyfin.service: jellyfin
+      traefik.http.services.jellyfin.loadbalancer.server.port: 8096
 
 volumes:
   jellyfin:
@@ -22,3 +30,5 @@ volumes:
 networks:
   jellyfin:
     name: jellyfin
+  traefik:
+    external: true

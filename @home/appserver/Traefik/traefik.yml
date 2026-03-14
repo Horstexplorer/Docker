@@ -1,0 +1,49 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+
+accessLog: {}
+
+api:
+  dashboard: true
+  insecure: true
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: traefik
+  file:
+    directory: '/data/configs'
+    watch: true
+
+entryPoints:
+  traefik:
+    address: ':81'
+  http:
+    address: ':80'
+  https:
+    address: ':443'
+    http:
+      middlewares:
+        - secure-headers@file
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: 'domain.tld'
+            sans:
+              - '*.domain.tld'
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: acme@domain.tld
+      storage: /data/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        delayBeforeCheck: 30
+        resolvers:
+          - X.ns.cloudflare.com
+          - Y.ns.cloudflare.com

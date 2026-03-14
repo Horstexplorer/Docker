@@ -1,0 +1,20 @@
+http:
+  middlewares:
+    secure-headers:
+      headers:
+        # HSTS (Strict Transport Security)
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+
+        # Clickjacking protection
+        frameDeny: true
+
+        # XSS protection
+        browserXssFilter: true
+
+        # MIME sniffing protection
+        contentTypeNosniff: true
+
+        # Referrer policy
+        referrerPolicy: "strict-origin-when-cross-origin"

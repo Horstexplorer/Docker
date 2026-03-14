@@ -1,4 +1,0 @@
-# Include default configurations
-import defaults/*
-# Include domain specific configurations
-import domains/*

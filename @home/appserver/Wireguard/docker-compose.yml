@@ -6,19 +6,21 @@ services:
     container_name: wg-easy
     restart: unless-stopped
     env_file: wg-easy.env
-    volumes:
-      - wireguard:/etc/wireguard
-      - /lib/modules:/lib/modules:ro
     networks:
       wireguard:
         interface_name: eth0
         gw_priority: 1
-      caddy:
+      traefik:
         interface_name: eth1
         gw_priority: 0
+    expose:
+      - 51820
+      - 51821
     ports:
       - "51820:51820/udp"
-      - "51821:51821/tcp"
+    volumes:
+      - wireguard:/etc/wireguard
+      - /lib/modules:/lib/modules:ro
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -28,6 +30,13 @@ services:
       - net.ipv6.conf.all.disable_ipv6=0
       - net.ipv6.conf.all.forwarding=1
       - net.ipv6.conf.default.forwarding=1
+    labels:
+      traefik.enable: true
+      traefik.http.routers.wireguard.rule: Host(`wireguard.domain.tld`)
+      traefik.http.routers.wireguard.entrypoints: https
+      traefik.http.routers.wireguard.middlewares: local-ip-ranges@file
+      traefik.http.routers.wireguard.service: wireguard
+      traefik.http.services.wireguard.loadbalancer.server.port: 51821
 
 volumes:
   wireguard:
@@ -38,3 +47,5 @@ networks:
     name: wireguard
     driver: bridge
     enable_ipv6: true
+  traefik:
+    external: true

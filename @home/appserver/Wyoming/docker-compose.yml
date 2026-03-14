@@ -7,12 +7,12 @@ services:
     restart: unless-stopped
     runtime: nvidia
     env_file: wyoming-whisper.env
-    volumes:
-      - wyoming-whisper:/config
     networks:
       - wyoming
-    ports:
-      - 10300:10300
+    expose:
+      - 10300
+    volumes:
+      - wyoming-whisper:/config
 
   wyoming-piper:
     # https://docs.linuxserver.io/images/docker-piper/
@@ -21,10 +21,12 @@ services:
     restart: unless-stopped
     runtime: nvidia
     env_file: wyoming-piper.env
+    networks:
+      - wyoming
+    expose:
+     - 10200
     volumes:
       - wyoming-piper:/config
-    ports:
-      - 10200:10200
 
 volumes:
   wyoming-whisper:

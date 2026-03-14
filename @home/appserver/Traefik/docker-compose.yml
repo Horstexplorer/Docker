@@ -1,0 +1,36 @@
+name: Traefik
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: unless-stopped
+    env_file: traefik.env
+    networks:
+      - traefik
+    expose:
+      - 80
+      - 443
+      - 81
+    ports:
+      - 80:80/tcp
+      - 80:80/udp
+      - 443:443/tcp
+      - 443:443/udp
+      - 81:81/tcp # dashboard
+    volumes:
+      - traefik:/data
+      - ./configs:/data/configs
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+networks:
+  traefik:
+    name: traefik
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd00:c0a8:0514:0002::/64
+
+volumes:
+  traefik:
+    name: traefik

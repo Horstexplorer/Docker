@@ -1,0 +1,15 @@
+http:
+  routers:
+    redirect-http-to-https:
+      entrypoints:
+        - http
+      rule: PathPrefix(`/`)
+      middlewares:
+        - redirect-http-to-https
+      service: noop@internal
+
+  middlewares:
+    redirect-http-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true

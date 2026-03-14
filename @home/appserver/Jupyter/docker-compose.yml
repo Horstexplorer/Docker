@@ -5,15 +5,22 @@ services:
     image: quay.io/jupyter/minimal-notebook:latest
     container_name: jupyter-notebook
     restart: unless-stopped
-    command: "start-notebook.sh --NotebookApp.token=<tokenhere>"
+    command: "start-notebook.py --NotebookApp.token=<tokenhere>"
     volumes:
       - jupyter-notebook:/home/jovyan
       - jupyter-conda-envs:/opt/conda/envs
       - jupyter-conda-pkgs:/opt/conda/pkgs
     networks:
       - jupyter
-    ports:
-      - 8888:8888
+      - traefik
+    expose:
+      - 8080
+    labels:
+      traefik.enable: true
+      traefik.http.routers.jupyter.rule: Host(`jupyter.domain.tld`)
+      traefik.http.routers.jupyter.entrypoints: https
+      traefik.http.routers.jupyter.service: jupyter
+      traefik.http.services.jupyter.loadbalancer.server.port: 8888
 
 volumes:
   jupyter-notebook:
@@ -26,3 +33,5 @@ volumes:
 networks:
   jupyter:
     name: jupyter
+  traefik:
+    external: true

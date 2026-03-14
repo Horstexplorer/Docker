@@ -9,13 +9,13 @@ The following environments and services are covered in this documentation:
 ### **@home**
 
 - [AppServer](@home/appserver)
-  - [Caddy](@home/appserver/Caddy)
   - [GoBin](@home/appserver/GoBin)
   - [Jellyfin](@home/appserver/Jellyfin)
   - [Jupyter](@home/appserver/Jupyter)
   - [Ollama](@home/appserver/Ollama)
   - [SearXNG](@home/appserver/SearXNG)
   - [Torrent](@home/appserver/Torrent)
+  - [Traefik](@home/appserver/Traefik)
   - [Vaultwarden](@home/appserver/Vaultwarden)
   - [Wireguard](@home/appserver/Wireguard)
   - [Wyoming](@home/appserver/Wyoming)
@@ -24,7 +24,6 @@ The following environments and services are covered in this documentation:
 - [MailServer](@home/mailserver)
   - [Mailcow Dockerized](@home/mailserver/mailcow-dockerized)
 - [Unifi](@home/unifi)
-  - [Unifi Network Application](@home/unifi/Unify)
 
 ### **@netcup**
 

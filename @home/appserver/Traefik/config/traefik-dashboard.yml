@@ -1,0 +1,15 @@
+http:
+  routers:
+    traefik-dashboard:
+      entrypoints:
+        - traefik
+      rule: PathPrefix(`/`)
+      service: api@internal
+      middlewares:
+        - local-ip-ranges
+        - traefik-dashboard-auth
+  middlewares:
+    traefik-dashboard-auth:
+      basicAuth:
+        users:
+          - ""

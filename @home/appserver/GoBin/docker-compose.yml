@@ -1,3 +1,4 @@
+name: GoBin
 services:
   gobin:
     image: ghcr.io/topi314/gobin:latest
@@ -6,8 +7,17 @@ services:
     volumes:
       - ./gobin.json:/var/lib/gobin/gobin.json
     networks:
-      - caddy
       - gobin
+      - traefik
+    expose:
+      - 80
+    labels:
+      traefik.enable: true
+      traefik.http.routers.gobin.rule: Host(`paste.domain.tld`)
+      traefik.http.routers.gobin.entrypoints: https
+      traefik.http.routers.gobin.service: gobin
+      traefik.http.services.gobin.loadbalancer.server.port: 80
+
   gobin-postgresql:
     image: postgres:18
     container_name: gobin-postgresql
@@ -15,6 +25,8 @@ services:
     env_file: postgresql.env
     networks:
       - gobin
+    expose:
+      - 5432
     volumes:
       - gobin-postgresql:/var/lib/postgresql
 
@@ -25,5 +37,5 @@ volumes:
 networks:
   gobin:
     name: gobin
-  caddy:
+  traefik:
     external: true
