@@ -10,6 +10,7 @@ The following environments and services are covered in this documentation:
 
 - [AppServer](@home/appserver)
   - [GoBin](@home/appserver/GoBin)
+  - [Immich](@home/appserver/Immich)
   - [Jellyfin](@home/appserver/Jellyfin)
   - [Jupyter](@home/appserver/Jupyter)
   - [Ollama](@home/appserver/Ollama)
