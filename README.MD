@@ -9,10 +9,8 @@ The following environments and services are covered in this documentation:
 ### **@home**
 
 - [AppServer](@home/appserver)
-  - [GoBin](@home/appserver/GoBin)
   - [Immich](@home/appserver/Immich)
   - [Jellyfin](@home/appserver/Jellyfin)
-  - [Jupyter](@home/appserver/Jupyter)
   - [Ollama](@home/appserver/Ollama)
   - [SearXNG](@home/appserver/SearXNG)
   - [Torrent](@home/appserver/Torrent)
@@ -28,10 +26,9 @@ The following environments and services are covered in this documentation:
 
 ### **@netcup**
 
-- [Electric-Jaguar](@netcup/electric-jaguar)
-  - [Caddy](@netcup/electric-jaguar/Caddy)
-  - [Matrix](@netcup/electric-jaguar/Matrix)
 - [Flashy-Puma](@netcup/flashy-puma)
+  - [Traefik](@netcup/electric-jaguar/Traefik)
+  - [Matrix](@netcup/electric-jaguar/Matrix)
 - [Luminous-Lynx](@netcup/luminous-lynx)
 
 ## Preparing a new environment

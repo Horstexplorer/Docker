@@ -1,4 +1,5 @@
 name: Wireguard
+
 services:
   wg-easy:
     # https://wg-easy.github.io/wg-easy/latest/

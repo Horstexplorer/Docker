@@ -1,0 +1,117 @@
+name: Matrix
+
+services:
+
+  matrix-well-known:
+    image: nginx:alpine
+    container_name: matrix-well-known
+    restart: unless-stopped
+    networks:
+      - matrix
+      - traefik
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./static/:/data/.well-known/matrix/:ro
+    labels:
+      traefik.enable: true
+      traefik.http.routers.matrix-static.rule: Host(`domain.tld`) && ( PathPrefix(`/.well-known/matrix/`) )
+      traefik.http.routers.matrix-static.entrypoints: https
+      traefik.http.services.matrix-static.loadbalancer.server.port: 8080
+
+  matrix-web:
+    image: ghcr.io/cinnyapp/cinny:latest
+    container_name: matrix-web
+    restart: unless-stopped
+    env_file: cinny.env
+    volumes:
+      - ./cinny.json:/usr/share/nginx/html/config.json
+    networks:
+      - matrix
+      - traefik
+    labels:
+      traefik.enable: true
+      traefik.http.routers.matrix-web.rule: Host(`matrix.domain.tld`)
+      traefik.http.routers.matrix-web.entrypoints: https
+      traefik.http.services.matrix-web.loadbalancer.server.port: 80
+
+  matrix-synapse:
+    image: ghcr.io/element-hq/synapse
+    container_name: matrix-synapse
+    restart: unless-stopped
+    env_file: synapse.env
+    volumes:
+      - matrix-synapse:/data
+    networks:
+      - matrix
+      - traefik
+    depends_on:
+      - matrix-postgresql
+      - matrix-auth
+    labels:
+      traefik.enable: true
+      traefik.http.routers.matrix-synapse.rule: Host(`matrix.domain.tld`) && ( PathPrefix(`/_matrix/`) || PathPrefix(`/_synapse/client/`) || PathPrefix(`/_synapse/admin/`) )
+      traefik.http.routers.matrix-synapse.entrypoints: https
+      traefik.http.services.matrix-synapse.loadbalancer.server.port: 8008
+
+  matrix-auth:
+    image: ghcr.io/element-hq/matrix-authentication-service
+    container_name: matrix-auth
+    restart: unless-stopped
+    command: "server --config=/data/config.yaml"
+    env_file: matrix-auth.env
+    volumes:
+      - matrix-auth:/data
+      - matrix-synapse:/synapse
+    networks:
+      - matrix
+      - traefik
+    depends_on:
+      - matrix-postgresql
+    labels:
+      traefik.enable: true
+      traefik.http.routers.matrix-auth.rule: Host(`matrix-auth.domain.tld`) || Host(`matrix.domain.tld`) && ( PathRegexp(`^/_matrix/client/\w+/login$`) || PathRegexp(`^/_matrix/client/\w+/logout$`) || PathRegexp(`^/_matrix/client/\w+/refresh$`))
+      traefik.http.routers.matrix-auth.entrypoints: https
+      traefik.http.services.matrix-auth.loadbalancer.server.port: 8080
+
+  matrix-admin:
+    image: oci.element.io/element-admin:latest
+    container_name: matrix-admin
+    restart: unless-stopped
+    env_file: element-admin.env
+    volumes:
+      - matrix-element-admin:/data
+    networks:
+      - matrix
+      - traefik
+    labels:
+      traefik.enable: true
+      traefik.http.routers.matrix-admin.rule: Host(`matrix-admin.domain.tld`)
+      traefik.http.routers.matrix-admin.entrypoints: https
+      traefik.http.services.matrix-admin.loadbalancer.server.port: 8080
+
+  matrix-postgresql:
+    image: postgres:18
+    container_name: matrix-postgresql
+    restart: unless-stopped
+    env_file: postgresql.env
+    volumes:
+      - ./init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
+      - matrix-postgresql:/var/lib/postgresql
+    networks:
+      - matrix
+
+volumes:
+  matrix-synapse:
+    name: matrix-synapse
+  matrix-postgresql:
+    name: matrix-postgresql
+  matrix-auth:
+    name: matrix-auth
+  matrix-element-admin:
+    name: matrix-element-admin
+
+networks:
+  matrix:
+    name: matrix
+  traefik:
+    external: true

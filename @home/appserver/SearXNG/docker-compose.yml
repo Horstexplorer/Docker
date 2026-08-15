@@ -1,4 +1,5 @@
 name: SearXNG
+
 services:
   searxng:
     # https://docs.searxng.org/admin/installation-docker.html
@@ -12,7 +13,7 @@ services:
     expose:
       - 8080
     volumes:
-      - searxng-data:/etc/searxng:rw
+      - searxng:/etc/searxng:rw
     cap_drop:
       - ALL
     cap_add:
@@ -27,7 +28,7 @@ services:
       traefik.http.routers.searxng.service: searxng
       traefik.http.services.searxng.loadbalancer.server.port: 8080
 
-  searxng-valkey:
+  valkey:
     # https://hub.docker.com/r/valkey/valkey/
     container_name: searxng-valkey
     image: docker.io/valkey/valkey:9-alpine
@@ -36,7 +37,7 @@ services:
     networks:
       - searxng
     volumes:
-      - searxng-valkey-data:/data
+      - valkey:/data
     cap_drop:
       - ALL
     cap_add:
@@ -45,10 +46,10 @@ services:
       - DAC_OVERRIDE
 
 volumes:
-  searxng-valkey-data:
-    name: searxng-valkey-data
-  searxng-data:
-    name: searxng-data
+  searxng:
+    name: searxng
+  valkey:
+    name: searxng-valkey
 
 networks:
   searxng:

@@ -1,10 +1,12 @@
 name: Ollama
+
 services:
   ollama:
     # https://github.com/ollama/ollama
     container_name: ollama
     image: ollama/ollama
     restart: unless-stopped
+    runtime: nvidia
     env_file: ollama.env
     networks:
       - ollama
@@ -13,12 +15,12 @@ services:
     volumes:
       - ollama:/root/.ollama
 
-  ollama-open-webui:
+  open-webui:
     # https://github.com/open-webui/open-webui
-    container_name: ollama-open-webui
+    container_name: open-webui
     image: ghcr.io/open-webui/open-webui:main
     restart: unless-stopped
-    env_file: ollama-open-webui.env
+    env_file: open-webui.env
     depends_on:
       - ollama
     networks:

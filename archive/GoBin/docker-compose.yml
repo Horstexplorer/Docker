@@ -1,4 +1,5 @@
 name: GoBin
+
 services:
   gobin:
     image: ghcr.io/topi314/gobin:latest
@@ -18,21 +19,21 @@ services:
       traefik.http.routers.gobin.service: gobin
       traefik.http.services.gobin.loadbalancer.server.port: 80
 
-  gobin-postgresql:
+  postgres:
     image: postgres:18
-    container_name: gobin-postgresql
+    container_name: gobin-postgres
     restart: unless-stopped
-    env_file: postgresql.env
+    env_file: postgres.env
     networks:
       - gobin
     expose:
       - 5432
     volumes:
-      - gobin-postgresql:/var/lib/postgresql
+      - postgres:/var/lib/postgresql
 
 volumes:
-  gobin-postgresql:
-    name: gobin-postgresql
+  postgres:
+    name: gobin-postgres
 
 networks:
   gobin:

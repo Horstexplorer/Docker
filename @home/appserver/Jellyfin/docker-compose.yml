@@ -1,4 +1,5 @@
 name: Jellyfin
+
 services:
   jellyfin:
     # https://docs.linuxserver.io/images/docker-jellyfin/

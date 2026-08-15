@@ -1,0 +1,8 @@
+# move into searxng data dir
+use_default_settings: true
+server:
+  secret_key: ""
+  bind_address: "[::]"
+
+valkey:
+  url: valkey://valkey:6379/0

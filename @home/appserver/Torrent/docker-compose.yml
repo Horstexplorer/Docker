@@ -1,4 +1,5 @@
 name: Torrent
+
 services:
   sonarr:
     # https://docs.linuxserver.io/images/docker-sonarr/
@@ -7,7 +8,7 @@ services:
     restart: unless-stopped
     env_file: sonarr.env
     networks:
-      - torrent
+      - qbittorrent
       - traefik
     expose:
       - 8989
@@ -32,7 +33,7 @@ services:
     restart: unless-stopped
     env_file: radarr.env
     networks:
-      - torrent
+      - qbittorrent
       - traefik
     expose:
       - 7878
@@ -57,7 +58,7 @@ services:
     restart: unless-stopped
     env_file: lidarr.env
     networks:
-      - torrent
+      - qbittorrent
       - traefik
     expose:
       - 8686
@@ -82,7 +83,6 @@ services:
     restart: unless-stopped
     env_file: jackett.env
     networks:
-      - torrent
       - traefik
     expose:
       - 9117
@@ -97,33 +97,34 @@ services:
       traefik.http.routers.jackett.service: jackett
       traefik.http.services.jackett.loadbalancer.server.port: 9117
 
-  deluge:
-    # https://github.com/binhex/arch-delugevpn
-    image: binhex/arch-delugevpn
-    container_name: deluge
+  qbittorrent:
+    # https://github.com/binhex/arch-qbittorrentvpn
+    image: binhex/arch-qbittorrentvpn
+    container_name: qbittorrent
     restart: unless-stopped
-    env_file: deluge.env
+    env_file: qbittorrent.env
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
     privileged: true
-    cap_add:
-      - NET_ADMIN
+    devices:
+      - /dev/net/tun
     networks:
-      - torrent
+      - qbittorrent
       - traefik
     expose:
-      - 8112
+      - 8080
     volumes:
-      - deluge:/config/
-      - ./server.ovpn:/config/openvpn/server.ovpn
-      - ./credentials.conf:/config/openvpn/credentials.conf
+      - qbittorrent:/config/
+      #      - ./wg0.conf:/config/wireguard/wg0.conf
       - blackhole:/downloads/.blackhole/
       - /mnt/cache/:/downloads/
     labels:
       traefik.enable: true
-      traefik.http.routers.deluge.rule: Host(`deluge.domain.tld`)
-      traefik.http.routers.deluge.entrypoints: https
-      traefik.http.routers.deluge.middlewares: local-ip-ranges@file
-      traefik.http.routers.deluge.service: deluge
-      traefik.http.services.deluge.loadbalancer.server.port: 8112
+      traefik.http.routers.qbittorrent.rule: Host(`qbittorrent.domain.tld`)
+      traefik.http.routers.qbittorrent.entrypoints: https
+      traefik.http.routers.qbittorrent.middlewares: local-ip-ranges@file
+      traefik.http.routers.qbittorrent.service: qbittorrent
+      traefik.http.services.qbittorrent.loadbalancer.server.port: 8080
 
 volumes:
   sonarr:
@@ -136,11 +137,11 @@ volumes:
     name: jackett
   blackhole:
     name: blackhole
-  deluge:
-    name: deluge
+  qbittorrent:
+    name: qbittorrent
 
 networks:
-  torrent:
-    name: torrent
+  qbittorrent:
+    name: qbittorrent
   traefik:
     external: true

@@ -1,4 +1,5 @@
 name: Vaultwarden
+
 services:
   vaultwarden:
     # https://github.com/dani-garcia/vaultwarden
@@ -7,7 +8,7 @@ services:
     restart: unless-stopped
     env_file: vaultwarden.env
     depends_on:
-      - vaultwarden-postgresql
+      - postgres
     networks:
       - vaultwarden
     expose:
@@ -22,24 +23,23 @@ services:
       traefik.http.routers.vaultwarden.service: vaultwarden
       traefik.http.services.vaultwarden.loadbalancer.server.port: 80
 
-  vaultwarden-postgresql:
+  postgres:
     # https://hub.docker.com/_/postgres
     image: postgres:18
-    container_name: vaultwarden-postgresql
+    container_name: postgres
     restart: unless-stopped
-    env_file: vaultwarden-postgresql.env
+    env_file: postgres.env
     networks:
       - vaultwarden
     expose:
       - 5432
     volumes:
-      - vaultwarden-postgresql:/var/lib/postgresql
-
+      - postgres:/var/lib/postgresql
 
 volumes:
   vaultwarden:
     name: vaultwarden
-  vaultwarden-postgresql:
+  postgres:
     name: vaultwarden-postgresql
 
 networks:

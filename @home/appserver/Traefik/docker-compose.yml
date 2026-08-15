@@ -1,4 +1,5 @@
 name: Traefik
+
 services:
   traefik:
     image: traefik:latest

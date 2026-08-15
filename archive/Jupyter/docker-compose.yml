@@ -1,4 +1,5 @@
 name: Jupyter
+
 services:
   jupyter-notebook:
     # https://hub.docker.com/r/jupyter/minimal-notebook/
@@ -7,9 +8,9 @@ services:
     restart: unless-stopped
     command: "start-notebook.py --NotebookApp.token=<tokenhere>"
     volumes:
-      - jupyter-notebook:/home/jovyan
-      - jupyter-conda-envs:/opt/conda/envs
-      - jupyter-conda-pkgs:/opt/conda/pkgs
+      - notebooks:/home/jovyan
+      - conda-envs:/opt/conda/envs
+      - conda-pkgs:/opt/conda/pkgs
     networks:
       - jupyter
       - traefik
@@ -23,11 +24,11 @@ services:
       traefik.http.services.jupyter.loadbalancer.server.port: 8888
 
 volumes:
-  jupyter-notebook:
-    name: jupyter-notebook
-  jupyter-conda-envs:
+  notebooks:
+    name: jupyter-notebooks
+  conda-envs:
     name: jupyter-conda-envs
-  jupyter-conda-pkgs:
+  conda-pkgs:
     name: jupyter-conda-pkgs
 
 networks:
