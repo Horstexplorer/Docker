@@ -4,7 +4,7 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 readonly DEFAULT_STACK_SELECTION='prompt'
-readonly DEFAULT_UPDATE_MODE='full'
+readonly DEFAULT_UPDATE_MODE='update'
 readonly PROMPT_STACK_SELECTION_DEFAULT='all'
 readonly DEFAULT_CLEANUP_SELECTION='images'
 
@@ -15,7 +15,7 @@ declare -a DISCOVERED_STACKS=()
 usage() {
   cat <<'EOF'
 Usage:
-  compose-mgmt.sh [--list] [--stacks all|prompt|name1,name2] [--mode full|pull-only|up|restart] [--cleanup [all|images|volumes|build-cache|containers|networks]]
+  compose-mgmt.sh [--list] [--stacks all|prompt|name1,name2] [--mode update|pull-only|up|restart] [--cleanup [all|images|volumes|build-cache|containers|networks]]
 
 Description:
   Detect Docker Compose stacks from Docker container labels and update them.
@@ -27,10 +27,10 @@ Options:
                all                Update all detected stacks
                prompt             Show detected stacks and prompt for selection (default)
                name1,name2,...    Update only selected stack names
-  --mode     Update mode:
-               full               pull + up -d --remove-orphans (default)
+  --mode     Mode:
+               update             pull + recreate while preserving running/stopped state (default)
                pull-only          Pull images only
-               up                 Recreate services from current images
+               up                 Recreate and start services
                restart            Restart services
   --cleanup  Prune unused Docker data targets (can be combined with updates)
              Targets: all, images, volumes, build-cache, containers, networks
@@ -102,7 +102,7 @@ prompt_stack_selection() {
 
 prompt_update_mode() {
   local response
-  printf 'Select update mode [full|pull-only|up|restart] (default: full): ' >&2
+  printf 'Select update mode [update|pull-only|up|restart] (default: update): ' >&2
   read -r response
   response=$(trim_ascii_whitespace "${response}")
   if [[ -z ${response} ]]; then
@@ -160,7 +160,7 @@ resolve_stack_selection() {
 validate_update_mode() {
   local mode=$1
   case "$mode" in
-    full|pull-only|up|restart) return 0 ;;
+    update|pull-only|up|restart) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -215,6 +215,53 @@ run_compose() {
   docker compose "${compose_args[@]}" "${operation[@]}"
 }
 
+list_running_services() {
+  local project_name=$1
+  run_compose "$project_name" ps --services --status running
+}
+
+list_existing_services() {
+  local project_name=$1
+  run_compose "$project_name" ps --services
+}
+
+recreate_stack_preserving_service_state() {
+  local project_name=$1
+  local pull_images=$2
+  local service_name
+  local -a previously_running_services=()
+  local -a existing_services=()
+  local -a services_to_start=()
+  local -A existing_service_set=()
+
+  mapfile -t previously_running_services < <(list_running_services "$project_name")
+
+  if [[ ${pull_images} == true ]]; then
+    run_compose "$project_name" pull
+  fi
+
+  run_compose "$project_name" up --no-start --remove-orphans
+
+  mapfile -t existing_services < <(list_existing_services "$project_name")
+  for service_name in "${existing_services[@]}"; do
+    service_name=$(trim_ascii_whitespace "$service_name")
+    [[ -n ${service_name} ]] || continue
+    existing_service_set["$service_name"]=1
+  done
+
+  for service_name in "${previously_running_services[@]}"; do
+    service_name=$(trim_ascii_whitespace "$service_name")
+    [[ -n ${service_name} ]] || continue
+    if [[ -n ${existing_service_set["$service_name"]+x} ]]; then
+      services_to_start+=("$service_name")
+    fi
+  done
+
+  if [[ ${#services_to_start[@]} -gt 0 ]]; then
+    run_compose "$project_name" start "${services_to_start[@]}"
+  fi
+}
+
 update_stack() {
   local project_name=$1
   local mode=$2
@@ -222,9 +269,8 @@ update_stack() {
   printf 'Updating stack: %s (mode: %s)\n' "$project_name" "$mode"
 
   case "$mode" in
-    full)
-      run_compose "$project_name" pull
-      run_compose "$project_name" up -d --remove-orphans
+    update)
+      recreate_stack_preserving_service_state "$project_name" true
       ;;
     pull-only)
       run_compose "$project_name" pull
