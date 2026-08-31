@@ -9,7 +9,7 @@ accessLog: {}
 
 api:
   dashboard: true
-  insecure: true
+  disabledashboardad: true
 
 providers:
   docker:

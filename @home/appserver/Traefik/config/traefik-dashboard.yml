@@ -8,8 +8,13 @@ http:
       middlewares:
         - local-ip-ranges
         - traefik-dashboard-auth
+        - block-traefik-hub
   middlewares:
     traefik-dashboard-auth:
       basicAuth:
         users:
           - ""
+    block-traefik-hub:
+      headers:
+        customResponseHeaders:
+          Content-Security-Policy: "default-src 'self' 'unsafe-inline';"
