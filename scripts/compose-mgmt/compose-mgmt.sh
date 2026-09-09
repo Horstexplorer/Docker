@@ -4,8 +4,8 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 readonly DEFAULT_STACK_SELECTION='prompt'
-readonly DEFAULT_UPDATE_MODE='update'
-readonly PROMPT_STACK_SELECTION_DEFAULT='all'
+readonly DEFAULT_PROMPT_STACK_SELECTION='all'
+readonly DEFAULT_MODE='update'
 readonly DEFAULT_CLEANUP_SELECTION='images'
 SCRIPT_FILE_NAME=$(basename "${BASH_SOURCE[0]}")
 readonly SCRIPT_FILE_NAME
@@ -19,32 +19,38 @@ declare -a DISCOVERED_STACKS=()
 usage() {
   cat <<EOF
 Usage:
-  ${SCRIPT_FILE_NAME} [--list] [--stacks all|prompt|name1,name2] [--mode update|pull-only|up|restart] [--cleanup [all|images|volumes|build-cache|containers|networks]] [--shim add|remove]
+  ${SCRIPT_FILE_NAME} [--stacks <selection>] [--mode <mode>] [--cleanup [<targets>]]
 
 Description:
-  Detect Docker Compose stacks from Docker container labels and update them.
+  Detect Docker Compose stacks from Docker container labels and apply a mode to them.
+  Running without arguments shows this help message.
 
 Options:
-  -h, --help Show this help message
-  --list     List detected stack names and exit
-  --stacks   Stack selection mode:
-               all                Update all detected stacks
-               prompt             Show detected stacks and prompt for selection (default)
-               name1,name2,...    Update only selected stack names
-  --mode     Mode:
-               update             pull + recreate while preserving running/stopped state (default)
-               pull-only          Pull images only
-               up                 Recreate and start services
-               restart            Restart services
-  --cleanup  Prune unused Docker data targets (can be combined with updates)
-             Targets: all, images, volumes, build-cache, containers, networks
-             Default target: images
-             Prompt stack mode applies cleanup by default after updates
-             Examples: --cleanup
-                       --cleanup images,build-cache
-  --shim     Manage command shim:
-               add                Create/update command shim symlink to this script
-               remove             Remove command shim
+  -h, --help   Show this help message and exit
+  --list       List detected stacks with their containers and states, then exit
+  --stacks     Stacks to apply the mode to:
+                 prompt             Show detected stacks and prompt for a selection (default)
+                 all                All detected stacks
+                 name1,name2,...    Only the given stacks
+  --mode       Mode to apply to the selected stacks
+               (prompted when omitted in a terminal, otherwise defaults to update):
+                 update             Pull images and recreate services, keeping running/stopped state (default)
+                 pull-only          Pull images without recreating services
+                 up                 Recreate and start all services, removing orphans
+                 restart            Restart all services, starting services stuck in 'created' first
+                 stop               Stop all services (containers are kept)
+  --cleanup    Prune unused Docker data; only runs when provided.
+               Runs after the mode when combined with --stacks/--mode, otherwise on its own:
+                 images             Unused images (default)
+                 volumes            Unused volumes
+                 build-cache        Build cache
+                 containers         Stopped containers
+                 networks           Unused networks
+                 all                All of the above
+                 target1,...        Comma-separated combination of targets
+  --shim       Manage the '${SCRIPT_COMMAND_NAME}' command:
+                 add                Symlink this script into the first writable PATH directory
+                 remove             Remove the command from PATH
 EOF
 }
 
@@ -70,21 +76,36 @@ ensure_docker_available() {
 }
 
 discover_compose_stacks() {
-  local project_name working_dir config_files
+  local -a container_ids=()
+  local project working_dir config_files
 
-  while IFS=$'\t' read -r project_name working_dir config_files; do
-    [[ -n ${project_name} ]] || continue
+  # Get IDs of all containers that are part of a compose project (running or not)
+  mapfile -t container_ids < <(docker ps -aq --filter 'label=com.docker.compose.project' 2>/dev/null || true)
 
-    if [[ -z ${PROJECT_DIRS["$project_name"]+x} || -z ${PROJECT_DIRS["$project_name"]} ]]; then
-      PROJECT_DIRS["$project_name"]=$working_dir
-    fi
+  if [[ ${#container_ids[@]} -eq 0 ]]; then
+    die 'No Docker Compose stacks were detected'
+  fi
 
-    if [[ -z ${PROJECT_CONFIGS["$project_name"]+x} || -z ${PROJECT_CONFIGS["$project_name"]} ]]; then
-      PROJECT_CONFIGS["$project_name"]=$config_files
-    fi
-  done < <(docker ps -a \
-    --filter 'label=com.docker.compose.project' \
-    --format '{{.Label "com.docker.compose.project"}}	{{.Label "com.docker.compose.project.working_dir"}}	{{.Label "com.docker.compose.project.config_files"}}')
+  # Single batched inspect + single jq pass: group all containers by compose
+  # project and reduce each group to its project metadata. This avoids one
+  # docker inspect/jq invocation per container.
+  local projects_ndjson
+  projects_ndjson=$(docker inspect "${container_ids[@]}" | jq -c '
+    [.[].Config.Labels // {}]
+    | map(select(."com.docker.compose.project" != null and ."com.docker.compose.project" != ""))
+    | group_by(."com.docker.compose.project")
+    | map({
+        project: .[0]."com.docker.compose.project",
+        working_dir: (.[0]."com.docker.compose.project.working_dir" // ""),
+        config_files: (.[0]."com.docker.compose.project.config_files" // "")
+      })
+    | .[]
+  ')
+
+  while IFS= read -r -d '' project && IFS= read -r -d '' working_dir && IFS= read -r -d '' config_files; do
+    PROJECT_DIRS["$project"]="$working_dir"
+    PROJECT_CONFIGS["$project"]="$config_files"
+  done < <(printf '%s' "$projects_ndjson" | jq -j '(.project, .working_dir, .config_files) | . + "\u0000"')
 
   if [[ ${#PROJECT_DIRS[@]} -eq 0 ]]; then
     die 'No Docker Compose stacks were detected'
@@ -95,25 +116,29 @@ discover_compose_stacks() {
 
 prompt_stack_selection() {
   local response
-  printf 'Detected stacks:\n' >&2
-  printf '  %s\n' "${DISCOVERED_STACKS[@]}" >&2
-  printf 'Select stacks to update [all]: ' >&2
+  local stack_list
+
+  stack_list=$(printf '%s, ' "${DISCOVERED_STACKS[@]}")
+  stack_list=${stack_list%, }
+
+  printf 'Detected %d stack(s): %s\n' "${#DISCOVERED_STACKS[@]}" "${stack_list}" >&2
+  printf 'Select stacks [all|name1,name2,...] (default: %s): ' "${DEFAULT_PROMPT_STACK_SELECTION}" >&2
   read -r response
   response=$(trim_ascii_whitespace "${response}")
   if [[ -z ${response} ]]; then
-    printf '%s' "${PROMPT_STACK_SELECTION_DEFAULT}"
+    printf '%s' "${DEFAULT_PROMPT_STACK_SELECTION}"
   else
     printf '%s' "${response}"
   fi
 }
 
-prompt_update_mode() {
+prompt_mode() {
   local response
-  printf 'Select update mode [update|pull-only|up|restart] (default: update): ' >&2
+  printf 'Select mode [update|pull-only|up|restart|stop] (default: %s): ' "${DEFAULT_MODE}" >&2
   read -r response
   response=$(trim_ascii_whitespace "${response}")
   if [[ -z ${response} ]]; then
-    printf '%s' "${DEFAULT_UPDATE_MODE}"
+    printf '%s' "${DEFAULT_MODE}"
   else
     printf '%s' "${response}"
   fi
@@ -131,17 +156,13 @@ resolve_stack_selection() {
     normalized_selector=$DEFAULT_STACK_SELECTION
   fi
 
+  if [[ ${normalized_selector} == 'prompt' ]]; then
+    normalized_selector=$(prompt_stack_selection)
+  fi
+
   if [[ ${normalized_selector} == 'all' ]]; then
     printf '%s\n' "${DISCOVERED_STACKS[@]}"
     return 0
-  fi
-
-  if [[ ${normalized_selector} == 'prompt' ]]; then
-    normalized_selector=$(prompt_stack_selection)
-    if [[ ${normalized_selector} == 'all' ]]; then
-      printf '%s\n' "${DISCOVERED_STACKS[@]}"
-      return 0
-    fi
   fi
 
   IFS=',' read -r -a selected <<< "${normalized_selector}"
@@ -164,10 +185,10 @@ resolve_stack_selection() {
   printf '%s\n' "${selected[@]}"
 }
 
-validate_update_mode() {
+validate_mode() {
   local mode=$1
   case "$mode" in
-    update|pull-only|up|restart) return 0 ;;
+    update|pull-only|up|restart|stop) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -222,26 +243,52 @@ run_compose() {
   docker compose "${compose_args[@]}" "${operation[@]}"
 }
 
-list_running_services() {
+list_services_by_state() {
+  # Lists service names (deduplicated) whose container State matches any of
+  # the given states. Always queries with --all since Compose's default 'ps'
+  # hides non-running containers (created/exited), which previously caused
+  # services stuck in 'created' state to be invisible to this script.
   local project_name=$1
-  run_compose "$project_name" ps --services --status running
+  shift
+  local states_json
+  states_json=$(printf '%s\n' "$@" | jq -R . | jq -cs .)
+  run_compose "$project_name" ps --all --format '{{json .}}' \
+    | jq -rs --argjson states "$states_json" \
+        '[.[] | select(.State as $s | $states | index($s)) | .Service] | unique | .[]'
+}
+
+list_running_services() {
+  list_services_by_state "$1" running
 }
 
 list_existing_services() {
+  # All services with a container that currently exists, in any state.
   local project_name=$1
-  run_compose "$project_name" ps --services
+  run_compose "$project_name" ps --all --format '{{json .}}' | jq -rs '[.[].Service] | unique | .[]'
+}
+
+list_stack_containers_with_state() {
+  # Emits one already-formatted "  - <name> [<status>]" line per container.
+  local project_name=$1
+  docker ps -a \
+    --filter "label=com.docker.compose.project=${project_name}" \
+    --format '{{json .}}' | jq -r '"  - " + .Names + " [" + .Status + "]"'
 }
 
 recreate_stack_preserving_service_state() {
   local project_name=$1
   local pull_images=$2
   local service_name
-  local -a previously_running_services=()
+  local -a services_to_restore=()
   local -a existing_services=()
   local -a services_to_start=()
   local -A existing_service_set=()
 
-  mapfile -t previously_running_services < <(list_running_services "$project_name")
+  # Services that were running, or already stuck in 'created' (never
+  # started, e.g. from a previous interrupted update), should be started
+  # again after recreation. Intentionally stopped ('exited') services are
+  # left untouched to preserve their state.
+  mapfile -t services_to_restore < <(list_services_by_state "$project_name" running created)
 
   if [[ ${pull_images} == true ]]; then
     run_compose "$project_name" pull
@@ -256,7 +303,7 @@ recreate_stack_preserving_service_state() {
     existing_service_set["$service_name"]=1
   done
 
-  for service_name in "${previously_running_services[@]}"; do
+  for service_name in "${services_to_restore[@]}"; do
     service_name=$(trim_ascii_whitespace "$service_name")
     [[ -n ${service_name} ]] || continue
     if [[ -n ${existing_service_set["$service_name"]+x} ]]; then
@@ -269,40 +316,69 @@ recreate_stack_preserving_service_state() {
   fi
 }
 
-update_stack() {
+start_stuck_created_services() {
+  # 'docker compose restart' only restarts services that are already
+  # running or stopped ('exited'); it does not start containers stuck in
+  # the 'created' state (e.g. from an interrupted previous update). Start
+  # those explicitly first so 'restart' can act on the whole stack.
+  local project_name=$1
+  local -a created_services=()
+
+  mapfile -t created_services < <(list_services_by_state "$project_name" created)
+
+  if [[ ${#created_services[@]} -gt 0 ]]; then
+    printf '  - Starting stuck (created) services: %s\n' "$(printf '%s ' "${created_services[@]}")" >&2
+    run_compose "$project_name" start "${created_services[@]}"
+  fi
+}
+
+apply_mode_to_stack() {
   local project_name=$1
   local mode=$2
 
-  printf 'Updating stack: %s (mode: %s)\n' "$project_name" "$mode"
+  printf 'Processing stack: %s (mode: %s)\n' "$project_name" "$mode" >&2
 
   case "$mode" in
     update)
+      printf '  - Pulling images and recreating services while preserving running state\n' >&2
       recreate_stack_preserving_service_state "$project_name" true
       ;;
     pull-only)
+      printf '  - Pulling images only\n' >&2
       run_compose "$project_name" pull
       ;;
     up)
+      printf '  - Recreating and starting services\n' >&2
       run_compose "$project_name" up -d --remove-orphans
       ;;
     restart)
+      printf '  - Restarting services\n' >&2
+      start_stuck_created_services "$project_name"
       run_compose "$project_name" restart
       ;;
+    stop)
+      printf '  - Stopping all containers\n' >&2
+      run_compose "$project_name" stop
+      ;;
     *)
-      die "Unsupported update mode: ${mode}"
+      die "Unsupported mode: ${mode}"
       ;;
   esac
+
+  printf '  - Finished stack: %s\n' "$project_name" >&2
 }
 
 cleanup_docker_artifacts() {
   local cleanup_selector=$1
   local target
   local -a cleanup_targets=()
-  local do_images=false
-  local do_volumes=false
-  local do_build_cache=false
-  local do_containers=false
-  local do_networks=false
+  local -A cleanup_flags=(
+    [images]=false
+    [volumes]=false
+    [build_cache]=false
+    [containers]=false
+    [networks]=false
+  )
 
   IFS=',' read -r -a cleanup_targets <<< "$cleanup_selector"
 
@@ -313,63 +389,77 @@ cleanup_docker_artifacts() {
 
     case "$target" in
       all)
-        do_images=true
-        do_volumes=true
-        do_build_cache=true
-        do_containers=true
-        do_networks=true
+        cleanup_flags[images]=true
+        cleanup_flags[volumes]=true
+        cleanup_flags[build_cache]=true
+        cleanup_flags[containers]=true
+        cleanup_flags[networks]=true
         ;;
-      images) do_images=true ;;
-      volumes) do_volumes=true ;;
-      build-cache) do_build_cache=true ;;
-      containers) do_containers=true ;;
-      networks) do_networks=true ;;
+      images) cleanup_flags[images]=true ;;
+      volumes) cleanup_flags[volumes]=true ;;
+      build-cache) cleanup_flags[build_cache]=true ;;
+      containers) cleanup_flags[containers]=true ;;
+      networks) cleanup_flags[networks]=true ;;
     esac
   done
 
-  if [[ ${do_containers} == true ]]; then
+  if [[ ${cleanup_flags[containers]} == true ]]; then
+    printf 'Pruning unused containers...\n' >&2
     docker container prune --force
   fi
 
-  if [[ ${do_networks} == true ]]; then
+  if [[ ${cleanup_flags[networks]} == true ]]; then
+    printf 'Pruning unused networks...\n' >&2
     docker network prune --force
   fi
 
-  if [[ ${do_images} == true ]]; then
+  if [[ ${cleanup_flags[images]} == true ]]; then
+    printf 'Pruning unused images...\n' >&2
     docker image prune --all --force
   fi
 
-  if [[ ${do_volumes} == true ]]; then
+  if [[ ${cleanup_flags[volumes]} == true ]]; then
+    printf 'Pruning unused volumes...\n' >&2
     docker volume prune --force
   fi
 
-  if [[ ${do_build_cache} == true ]]; then
+  if [[ ${cleanup_flags[build_cache]} == true ]]; then
+    printf 'Pruning build cache...\n' >&2
     docker builder prune --all --force
   fi
 }
 
 manage_script_shim() {
   local action=$1
-  local script_path command_path
+  local script_path command_path path_entry
+  local -a path_entries=()
 
   script_path=$(realpath "$0")
-  command_path=$(command -v "${SCRIPT_COMMAND_NAME}" 2>/dev/null || true)
 
   case "$action" in
     add)
-      if [[ -z ${command_path} ]]; then
-        die "Cannot add shim: '${SCRIPT_COMMAND_NAME}' is not found in PATH. Create it manually in a PATH directory."
+      IFS=':' read -r -a path_entries <<< "${PATH}"
+      for path_entry in "${path_entries[@]}"; do
+        [[ -n ${path_entry} ]] || continue
+        if [[ -d ${path_entry} && -w ${path_entry} ]]; then
+          command_path="${path_entry}/${SCRIPT_COMMAND_NAME}"
+          break
+        fi
+      done
+      if [[ -z ${command_path:-} ]]; then
+        die "Cannot add shim: no writable PATH directory found."
       fi
       ln -sfn "$script_path" "$command_path"
-      printf 'Added command shim: %s -> %s\n' "$command_path" "$script_path"
+      printf 'Added command shim: %s -> %s\n' "$command_path" "$script_path" >&2
       ;;
     remove)
+      command_path=$(command -v "${SCRIPT_COMMAND_NAME}" 2>/dev/null || true)
       if [[ -z ${command_path} ]]; then
         die "Cannot remove shim: '${SCRIPT_COMMAND_NAME}' is not found in PATH."
       fi
       if [[ -L ${command_path} || -e ${command_path} ]]; then
         rm -f "$command_path"
-        printf 'Removed command shim: %s\n' "$command_path"
+        printf 'Removed command shim: %s\n' "$command_path" >&2
       fi
       ;;
     *)
@@ -380,16 +470,20 @@ manage_script_shim() {
 
 main() {
   local stack_selector=$DEFAULT_STACK_SELECTION
-  local update_mode=
+  local mode=
   local argument=
+  local stack_name=
   local list_only=false
   local cleanup_requested=false
-  local cleanup_option_provided=false
   local cleanup_selector=$DEFAULT_CLEANUP_SELECTION
   local stacks_option_provided=false
-  local mode_option_provided=false
   local shim_action=
-  local -a stacks_to_update=()
+  local -a selected_stacks=()
+
+  if [[ $# -eq 0 ]]; then
+    usage
+    exit 0
+  fi
 
   while [[ $# -gt 0 ]]; do
     argument=$1
@@ -402,8 +496,8 @@ main() {
         ;;
       --mode)
         [[ $# -ge 2 ]] || die 'Missing value for --mode'
-        update_mode=$2
-        mode_option_provided=true
+        mode=$2
+        validate_mode "$mode" || die "Invalid mode: ${mode}"
         shift 2
         ;;
       --list)
@@ -412,7 +506,6 @@ main() {
         ;;
       --cleanup)
         cleanup_requested=true
-        cleanup_option_provided=true
         if [[ $# -ge 2 && $2 != -* ]]; then
           cleanup_selector=$2
           shift 2
@@ -423,7 +516,6 @@ main() {
         ;;
       --cleanup=*)
         cleanup_requested=true
-        cleanup_option_provided=true
         cleanup_selector=${argument#--cleanup=}
         [[ -n ${cleanup_selector} ]] || die 'Missing value for --cleanup'
         shift
@@ -449,22 +541,19 @@ main() {
   done
 
   require_command docker
+  require_command jq
 
   if [[ -n ${shim_action} ]]; then
     manage_script_shim "$shim_action"
-    if [[ ${list_only} == false && ${cleanup_requested} == false && ${stacks_option_provided} == false && ${mode_option_provided} == false ]]; then
+    if [[ ${list_only} == false && ${cleanup_requested} == false && ${stacks_option_provided} == false && -z ${mode} ]]; then
       exit 0
     fi
   fi
 
   ensure_docker_available
 
-  if [[ ${cleanup_option_provided} == false && ${stack_selector} == 'prompt' ]]; then
-    cleanup_requested=true
-    cleanup_selector=$DEFAULT_CLEANUP_SELECTION
-  fi
-
-  if [[ ${list_only} == false && ${cleanup_option_provided} == true && ${cleanup_requested} == true && ${stacks_option_provided} == false && ${mode_option_provided} == false ]]; then
+  # Cleanup-only run: skip stack discovery and mode handling entirely.
+  if [[ ${list_only} == false && ${cleanup_requested} == true && ${stacks_option_provided} == false && -z ${mode} ]]; then
     cleanup_docker_artifacts "$cleanup_selector"
     exit 0
   fi
@@ -472,33 +561,41 @@ main() {
   discover_compose_stacks
 
   if [[ ${list_only} == true ]]; then
-    printf '%s\n' "${DISCOVERED_STACKS[@]}"
+    printf 'Detected stacks:\n' >&2
+    for stack_name in "${DISCOVERED_STACKS[@]}"; do
+      printf '%s\n' "$stack_name"
+      list_stack_containers_with_state "$stack_name"
+    done
     exit 0
   fi
 
-  if [[ -z ${update_mode} ]]; then
+  if [[ -z ${mode} ]]; then
     if [[ -t 0 ]]; then
-      update_mode=$(prompt_update_mode)
+      mode=$(prompt_mode)
     else
-      update_mode=$DEFAULT_UPDATE_MODE
+      mode=$DEFAULT_MODE
     fi
+    validate_mode "$mode" || die "Invalid mode: ${mode}"
   fi
 
-  validate_update_mode "$update_mode" || die "Invalid update mode: ${update_mode}"
+  mapfile -t selected_stacks < <(resolve_stack_selection "$stack_selector")
 
-  mapfile -t stacks_to_update < <(resolve_stack_selection "$stack_selector")
-
-  if [[ ${#stacks_to_update[@]} -eq 0 ]]; then
-    die 'No stacks selected for update'
+  if [[ ${#selected_stacks[@]} -eq 0 ]]; then
+    die 'No stacks selected'
   fi
 
-  for argument in "${stacks_to_update[@]}"; do
-    update_stack "$argument" "$update_mode"
+  printf 'Selected stacks (%d): %s\n' "${#selected_stacks[@]}" "$(printf '%s ' "${selected_stacks[@]}")" >&2
+
+  for stack_name in "${selected_stacks[@]}"; do
+    apply_mode_to_stack "$stack_name" "$mode"
   done
 
   if [[ ${cleanup_requested} == true ]]; then
+    printf 'Starting Docker cleanup (targets: %s)\n' "$cleanup_selector" >&2
     cleanup_docker_artifacts "$cleanup_selector"
   fi
+
+  printf 'Completed run (mode: %s).\n' "$mode" >&2
 }
 
 main "$@"
