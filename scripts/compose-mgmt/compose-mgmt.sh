@@ -95,8 +95,12 @@ discover_compose_stacks() {
 
 prompt_stack_selection() {
   local response
-  printf 'Detected stacks:\n' >&2
-  printf '  %s\n' "${DISCOVERED_STACKS[@]}" >&2
+  local stack_list
+
+  stack_list=$(printf '%s, ' "${DISCOVERED_STACKS[@]}")
+  stack_list=${stack_list%, }
+
+  printf 'Detected %d stack(s): %s\n' "${#DISCOVERED_STACKS[@]}" "${stack_list}" >&2
   printf 'Select stacks to update [all]: ' >&2
   read -r response
   response=$(trim_ascii_whitespace "${response}")
@@ -273,36 +277,44 @@ update_stack() {
   local project_name=$1
   local mode=$2
 
-  printf 'Updating stack: %s (mode: %s)\n' "$project_name" "$mode"
+  printf 'Updating stack: %s (mode: %s)\n' "$project_name" "$mode" >&2
 
   case "$mode" in
     update)
+      printf '  - Pulling images and recreating services while preserving running state\n' >&2
       recreate_stack_preserving_service_state "$project_name" true
       ;;
     pull-only)
+      printf '  - Pulling images only\n' >&2
       run_compose "$project_name" pull
       ;;
     up)
+      printf '  - Recreating and starting services\n' >&2
       run_compose "$project_name" up -d --remove-orphans
       ;;
     restart)
+      printf '  - Restarting services\n' >&2
       run_compose "$project_name" restart
       ;;
     *)
       die "Unsupported update mode: ${mode}"
       ;;
   esac
+
+  printf '  - Finished stack: %s\n' "$project_name" >&2
 }
 
 cleanup_docker_artifacts() {
   local cleanup_selector=$1
   local target
   local -a cleanup_targets=()
-  local do_images=false
-  local do_volumes=false
-  local do_build_cache=false
-  local do_containers=false
-  local do_networks=false
+  local -A cleanup_flags=(
+    [images]=false
+    [volumes]=false
+    [build_cache]=false
+    [containers]=false
+    [networks]=false
+  )
 
   IFS=',' read -r -a cleanup_targets <<< "$cleanup_selector"
 
@@ -313,63 +325,77 @@ cleanup_docker_artifacts() {
 
     case "$target" in
       all)
-        do_images=true
-        do_volumes=true
-        do_build_cache=true
-        do_containers=true
-        do_networks=true
+        cleanup_flags[images]=true
+        cleanup_flags[volumes]=true
+        cleanup_flags[build_cache]=true
+        cleanup_flags[containers]=true
+        cleanup_flags[networks]=true
         ;;
-      images) do_images=true ;;
-      volumes) do_volumes=true ;;
-      build-cache) do_build_cache=true ;;
-      containers) do_containers=true ;;
-      networks) do_networks=true ;;
+      images) cleanup_flags[images]=true ;;
+      volumes) cleanup_flags[volumes]=true ;;
+      build-cache) cleanup_flags[build_cache]=true ;;
+      containers) cleanup_flags[containers]=true ;;
+      networks) cleanup_flags[networks]=true ;;
     esac
   done
 
-  if [[ ${do_containers} == true ]]; then
+  if [[ ${cleanup_flags[containers]} == true ]]; then
+    printf 'Pruning unused containers...\n' >&2
     docker container prune --force
   fi
 
-  if [[ ${do_networks} == true ]]; then
+  if [[ ${cleanup_flags[networks]} == true ]]; then
+    printf 'Pruning unused networks...\n' >&2
     docker network prune --force
   fi
 
-  if [[ ${do_images} == true ]]; then
+  if [[ ${cleanup_flags[images]} == true ]]; then
+    printf 'Pruning unused images...\n' >&2
     docker image prune --all --force
   fi
 
-  if [[ ${do_volumes} == true ]]; then
+  if [[ ${cleanup_flags[volumes]} == true ]]; then
+    printf 'Pruning unused volumes...\n' >&2
     docker volume prune --force
   fi
 
-  if [[ ${do_build_cache} == true ]]; then
+  if [[ ${cleanup_flags[build_cache]} == true ]]; then
+    printf 'Pruning build cache...\n' >&2
     docker builder prune --all --force
   fi
 }
 
 manage_script_shim() {
   local action=$1
-  local script_path command_path
+  local script_path command_path path_entry
+  local -a path_entries=()
 
   script_path=$(realpath "$0")
-  command_path=$(command -v "${SCRIPT_COMMAND_NAME}" 2>/dev/null || true)
 
   case "$action" in
     add)
-      if [[ -z ${command_path} ]]; then
-        die "Cannot add shim: '${SCRIPT_COMMAND_NAME}' is not found in PATH. Create it manually in a PATH directory."
+      IFS=':' read -r -a path_entries <<< "${PATH}"
+      for path_entry in "${path_entries[@]}"; do
+        [[ -n ${path_entry} ]] || continue
+        if [[ -d ${path_entry} && -w ${path_entry} ]]; then
+          command_path="${path_entry}/${SCRIPT_COMMAND_NAME}"
+          break
+        fi
+      done
+      if [[ -z ${command_path:-} ]]; then
+        die "Cannot add shim: no writable PATH directory found."
       fi
       ln -sfn "$script_path" "$command_path"
-      printf 'Added command shim: %s -> %s\n' "$command_path" "$script_path"
+      printf 'Added command shim: %s -> %s\n' "$command_path" "$script_path" >&2
       ;;
     remove)
+      command_path=$(command -v "${SCRIPT_COMMAND_NAME}" 2>/dev/null || true)
       if [[ -z ${command_path} ]]; then
         die "Cannot remove shim: '${SCRIPT_COMMAND_NAME}' is not found in PATH."
       fi
       if [[ -L ${command_path} || -e ${command_path} ]]; then
         rm -f "$command_path"
-        printf 'Removed command shim: %s\n' "$command_path"
+        printf 'Removed command shim: %s\n' "$command_path" >&2
       fi
       ;;
     *)
@@ -472,6 +498,7 @@ main() {
   discover_compose_stacks
 
   if [[ ${list_only} == true ]]; then
+    printf 'Detected stacks:\n' >&2
     printf '%s\n' "${DISCOVERED_STACKS[@]}"
     exit 0
   fi
@@ -492,13 +519,18 @@ main() {
     die 'No stacks selected for update'
   fi
 
+  printf 'Selected stacks for update (%d): %s\n' "${#stacks_to_update[@]}" "$(printf '%s ' "${stacks_to_update[@]}")" >&2
+
   for argument in "${stacks_to_update[@]}"; do
     update_stack "$argument" "$update_mode"
   done
 
   if [[ ${cleanup_requested} == true ]]; then
+    printf 'Starting Docker cleanup with selector: %s\n' "$cleanup_selector" >&2
     cleanup_docker_artifacts "$cleanup_selector"
   fi
+
+  printf 'Completed update run.\n' >&2
 }
 
 main "$@"
