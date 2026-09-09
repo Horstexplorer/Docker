@@ -7,15 +7,19 @@ readonly DEFAULT_STACK_SELECTION='prompt'
 readonly DEFAULT_UPDATE_MODE='update'
 readonly PROMPT_STACK_SELECTION_DEFAULT='all'
 readonly DEFAULT_CLEANUP_SELECTION='images'
+SCRIPT_FILE_NAME=$(basename "${BASH_SOURCE[0]}")
+readonly SCRIPT_FILE_NAME
+SCRIPT_COMMAND_NAME=$(basename "${BASH_SOURCE[0]}" .sh)
+readonly SCRIPT_COMMAND_NAME
 
 declare -A PROJECT_DIRS=()
 declare -A PROJECT_CONFIGS=()
 declare -a DISCOVERED_STACKS=()
 
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 Usage:
-  compose-mgmt.sh [--list] [--stacks all|prompt|name1,name2] [--mode update|pull-only|up|restart] [--cleanup [all|images|volumes|build-cache|containers|networks]]
+  ${SCRIPT_FILE_NAME} [--list] [--stacks all|prompt|name1,name2] [--mode update|pull-only|up|restart] [--cleanup [all|images|volumes|build-cache|containers|networks]] [--shim add|remove]
 
 Description:
   Detect Docker Compose stacks from Docker container labels and update them.
@@ -38,6 +42,9 @@ Options:
              Prompt stack mode applies cleanup by default after updates
              Examples: --cleanup
                        --cleanup images,build-cache
+  --shim     Manage command shim:
+               add                Create/update command shim symlink to this script
+               remove             Remove command shim
 EOF
 }
 
@@ -258,7 +265,7 @@ recreate_stack_preserving_service_state() {
   done
 
   if [[ ${#services_to_start[@]} -gt 0 ]]; then
-    run_compose "$project_name" start "${services_to_start[@]}"
+    run_compose "$project_name" up -d "${services_to_start[@]}"
   fi
 }
 
@@ -341,6 +348,36 @@ cleanup_docker_artifacts() {
   fi
 }
 
+manage_script_shim() {
+  local action=$1
+  local script_path command_path
+
+  script_path=$(realpath "$0")
+  command_path=$(command -v "${SCRIPT_COMMAND_NAME}" 2>/dev/null || true)
+
+  case "$action" in
+    add)
+      if [[ -z ${command_path} ]]; then
+        die "Cannot add shim: '${SCRIPT_COMMAND_NAME}' is not found in PATH. Create it manually in a PATH directory."
+      fi
+      ln -sfn "$script_path" "$command_path"
+      printf 'Added command shim: %s -> %s\n' "$command_path" "$script_path"
+      ;;
+    remove)
+      if [[ -z ${command_path} ]]; then
+        die "Cannot remove shim: '${SCRIPT_COMMAND_NAME}' is not found in PATH."
+      fi
+      if [[ -L ${command_path} || -e ${command_path} ]]; then
+        rm -f "$command_path"
+        printf 'Removed command shim: %s\n' "$command_path"
+      fi
+      ;;
+    *)
+      die "Invalid value for --shim: ${action}"
+      ;;
+  esac
+}
+
 main() {
   local stack_selector=$DEFAULT_STACK_SELECTION
   local update_mode=
@@ -351,9 +388,8 @@ main() {
   local cleanup_selector=$DEFAULT_CLEANUP_SELECTION
   local stacks_option_provided=false
   local mode_option_provided=false
+  local shim_action=
   local -a stacks_to_update=()
-
-  require_command docker
 
   while [[ $# -gt 0 ]]; do
     argument=$1
@@ -392,6 +428,16 @@ main() {
         [[ -n ${cleanup_selector} ]] || die 'Missing value for --cleanup'
         shift
         ;;
+      --shim)
+        [[ $# -ge 2 ]] || die 'Missing value for --shim'
+        shim_action=$2
+        shift 2
+        ;;
+      --shim=*)
+        shim_action=${argument#--shim=}
+        [[ -n ${shim_action} ]] || die 'Missing value for --shim'
+        shift
+        ;;
       -h|--help)
         usage
         exit 0
@@ -401,6 +447,15 @@ main() {
         ;;
     esac
   done
+
+  require_command docker
+
+  if [[ -n ${shim_action} ]]; then
+    manage_script_shim "$shim_action"
+    if [[ ${list_only} == false && ${cleanup_requested} == false && ${stacks_option_provided} == false && ${mode_option_provided} == false ]]; then
+      exit 0
+    fi
+  fi
 
   ensure_docker_available
 
