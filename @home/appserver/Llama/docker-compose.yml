@@ -1,0 +1,34 @@
+name: Llama
+services:
+  llama-cpp:
+    container_name: llama-cpp
+    image: ghcr.io/ggml-org/llama.cpp:full-cuda13
+    restart: unless-stopped
+    runtime: nvidia
+    env_file: llama.env
+    entrypoint: ["/app/llama-server"]
+    networks:
+      - llama
+      - traefik
+    expose:
+      - 9931
+    volumes:
+      - ./models:/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9931/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      traefik.enable: true
+      traefik.http.routers.llama.rule: Host(`llama.domain.tld`)
+      traefik.http.routers.llama.entrypoints: https
+      traefik.http.routers.llama.middlewares: local-ip-ranges@file
+      traefik.http.routers.llama.service: llama
+      traefik.http.services.llama.loadbalancer.server.port: 9931
+
+networks:
+  llama:
+    name: llama
+  traefik:
+    external: true
